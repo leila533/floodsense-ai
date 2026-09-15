@@ -16,7 +16,7 @@
 <div align="center">
 
 <a href="https://leila533.github.io/floodsense-ai/">
-<img src="dashboard_preview.png" alt="Dashboard FloodSense AI" width="900">
+<img src="assets/dashboard_preview.png" alt="Dashboard FloodSense AI" width="900">
 </a>
 
 </div>
