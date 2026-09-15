@@ -13,6 +13,16 @@
 
 <br><br>
 
+<div align="center">
+
+<a href="https://leila533.github.io/floodsense-ai/">
+<img src="dashboard_preview.png" alt="Dashboard FloodSense AI" width="900">
+</a>
+
+</div>
+
+<br>
+
 ![Status](https://img.shields.io/badge/Status-MVP%20Acadêmico-16A36A?style=flat-square)
 ![ESP32](https://img.shields.io/badge/Hardware-ESP32-1597D4?style=flat-square)
 ![Firebase](https://img.shields.io/badge/Cloud-Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)
