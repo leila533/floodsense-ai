@@ -1,228 +1,197 @@
-🌊 FloodSense AI
 <div align="center">
-Sistema Inteligente de Monitoramento e Previsão de Enchentes Urbanas
-<p> Uma solução acadêmica que integra <strong>IoT + ESP32 + Sensor Ultrassônico + Firebase + Dashboard Web + Análise de Dados</strong> </p> <br> <a href="https://leila533.github.io/floodsense-ai/"> <img src="https://img.shields.io/badge/🌊%20ACESSAR%20O%20SISTEMA-1597D4?style=for-the-badge" alt="Acessar FloodSense AI"> </a> <a href="https://github.com/leila533/floodsense-ai"> <img src="https://img.shields.io/badge/💻%20CÓDIGO-FONTE-172832?style=for-the-badge&logo=github" alt="Código fonte"> </a>
+
+# 🌊 FloodSense AI
+
+### Sistema Inteligente de Monitoramento e Previsão de Enchentes Urbanas
+
+**IoT • ESP32 • AJ-SR04M • Firebase • Dashboard Web**
+
+<br>
+
+[![Acessar Sistema](https://img.shields.io/badge/🌊%20Acessar%20Sistema-1597D4?style=for-the-badge)](https://leila533.github.io/floodsense-ai/)
+[![GitHub](https://img.shields.io/badge/💻%20Código%20Fonte-24292F?style=for-the-badge&logo=github)](https://github.com/leila533/floodsense-ai)
 
 <br><br>
 
-<img src="https://img.shields.io/badge/STATUS-MVP%20ACADÊMICO-16A36A?style=flat-square"> <img src="https://img.shields.io/badge/IoT-ESP32-1597D4?style=flat-square"> <img src="https://img.shields.io/badge/Firebase-Realtime%20Database-FFCA28?style=flat-square"> <img src="https://img.shields.io/badge/JavaScript-ES6-F7DF1E?style=flat-square"> <img src="https://img.shields.io/badge/Deploy-GitHub%20Pages-222222?style=flat-square&logo=github"> </div>
-🌧️ Sobre o projeto
+![Status](https://img.shields.io/badge/Status-MVP%20Acadêmico-16A36A?style=flat-square)
+![ESP32](https://img.shields.io/badge/Hardware-ESP32-1597D4?style=flat-square)
+![Firebase](https://img.shields.io/badge/Cloud-Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
 
-Como a tecnologia pode contribuir para o monitoramento de enchentes urbanas?
-
-O FloodSense AI é um projeto acadêmico desenvolvido no curso de Sistemas de Informação da Universidade Paulista — UNIP, com o objetivo de explorar uma solução tecnológica para o monitoramento de níveis de água e identificação de situações de risco relacionadas a enchentes urbanas.
-
-A proposta integra Internet das Coisas (IoT), sensores físicos, conectividade, armazenamento em nuvem e uma interface web, permitindo centralizar e visualizar informações de monitoramento.
-
-<div align="center">
-🎓 Projeto Acadêmico • UNIP • Sistemas de Informação • 2026
 </div>
-🚀 Acesse o FloodSense AI
+
+---
+
+## 🌧️ Sobre
+
+O **FloodSense AI** é um projeto acadêmico desenvolvido no curso de **Sistemas de Informação da Universidade Paulista — UNIP**.
+
+A solução propõe o uso de **Internet das Coisas (IoT)** para realizar o monitoramento de níveis de água por meio de um sensor ultrassônico conectado a um **ESP32**, enviando os dados para a nuvem e disponibilizando as informações em um **dashboard web**.
+
+O projeto foi desenvolvido como um **protótipo/MVP acadêmico**, permitindo demonstrar a integração entre hardware, software e serviços em nuvem.
+
+---
+
+## 🚀 Demonstração
+
 <div align="center">
-🌊 SISTEMA ONLINE
-➡️ CLIQUE AQUI PARA ACESSAR O FLOODSENSE AI
+
+### 🌊 FloodSense AI — Sistema Online
+
 <br>
 
-Dashboard disponível diretamente pelo navegador.
+<a href="https://leila533.github.io/floodsense-ai/">
+<img src="https://img.shields.io/badge/ABRIR%20DASHBOARD-1597D4?style=for-the-badge&logo=googlechrome&logoColor=white">
+</a>
+
+<br><br>
+
+**Acesse diretamente pelo navegador:**
+
+### https://leila533.github.io/floodsense-ai/
 
 </div>
-🎯 Objetivo
 
-O objetivo do FloodSense AI é desenvolver um protótipo de monitoramento de níveis de água, utilizando sensores conectados para coletar informações e disponibilizá-las em uma interface web.
+---
 
-A solução busca demonstrar, em um cenário acadêmico, como diferentes tecnologias podem ser integradas para apoiar o acompanhamento de situações relacionadas a enchentes urbanas.
+## 💡 Como funciona
 
-💡 Como funciona?
+O sistema possui um fluxo simples de coleta e disponibilização dos dados:
 
-O sistema é estruturado em um fluxo de coleta, transmissão, armazenamento e visualização de dados:
-
-        📡 SENSOR
-        AJ-SR04M
-            │
-            ▼
-       🔌 ESP32
-    Coleta dos dados
-            │
-          Wi-Fi
-            │
-            ▼
-     ☁️ FIREBASE
-   Realtime Database
-            │
-            ▼
-      🖥️ DASHBOARD
-       FloodSense AI
-            │
-            ▼
-      🚨 MONITORAMENTO
-        E ANÁLISE
-📡 Protótipo IoT
-
-Um dos principais diferenciais do projeto é a utilização de um protótipo físico real.
-
-🔌 Componentes
-Componente	Função
-🔌 ESP32	Coleta e processamento das informações
-📏 AJ-SR04M	Medição ultrassônica
-📶 Wi-Fi	Comunicação do ESP32
-☁️ Firebase	Armazenamento e disponibilização dos dados
-🔄 Fluxo do protótipo
+```text
 📏 AJ-SR04M
-     ↓
+Sensor ultrassônico
+       │
+       ▼
 🔌 ESP32
-     ↓
+Coleta dos dados
+       │
+       ▼
 📶 Wi-Fi
-     ↓
+       │
+       ▼
 ☁️ Firebase
-     ↓
+Realtime Database
+       │
+       ▼
+🖥️ FloodSense AI
+Dashboard Web
+
+📡 Protótipo físico
+
+O projeto possui um protótipo físico real desenvolvido para demonstrar a coleta e transmissão dos dados.
+
+Componentes
+
+🔌 ESP32
+Microcontrolador responsável pela coleta e processamento das informações.
+
+📏 AJ-SR04M
+Sensor ultrassônico utilizado para realizar as medições de distância.
+
+📶 Wi-Fi
+Responsável pela comunicação entre o ESP32 e a infraestrutura em nuvem.
+
+☁️ Firebase Realtime Database
+Utilizado para armazenar e disponibilizar os dados recebidos do protótipo.
+
 🖥️ Dashboard
 
-O sensor realiza medições físicas e o ESP32 transmite as informações para o Firebase, permitindo sua visualização no dashboard.
+O dashboard foi desenvolvido para centralizar as informações do sistema em uma única interface.
 
-📊 Funcionalidades
-<div align="center">
-🌊 Monitoramento	📡 IoT	☁️ Cloud	🚨 Alertas
-Nível da água	ESP32	Firebase	Status de risco
-Distância medida	AJ-SR04M	Dados em tempo real	Indicadores
-Status do sensor	Wi-Fi	Realtime Database	Comunicação
-🗺️ Visualização	🤖 Inteligência	📈 Análise	📱 Comunicação
-Mapa interativo	Previsões	Gráficos	WhatsApp
-Dashboard	Machine Learning	Indicadores	Ocorrências
-</div>
-🖥️ Dashboard
+Principais recursos
 
-O FloodSense AI possui uma interface web centralizada para apresentação das informações do sistema.
+|     | Recurso                    |
+| --- | -------------------------- |
+| 📊  | Monitoramento do sistema   |
+| 📡  | Dados do sensor físico     |
+| 💧  | Nível da água              |
+| 📏  | Distância medida           |
+| 🚨  | Indicadores e alertas      |
+| 🗺️ | Visualização em mapa       |
+| 📈  | Gráficos e análises        |
+| 🤖  | Área de IA e previsões     |
+| 📱  | Comunicação de ocorrências |
 
-Principais módulos
-┌──────────────────────────────────────────┐
-│              🌊 FLOODSENSE AI            │
-├──────────────────────────────────────────┤
-│                                          │
-│  📊 Dashboard                            │
-│                                          │
-│  📡 Sensores IoT                         │
-│                                          │
-│  🗺️ Mapa Interativo                      │
-│                                          │
-│  🤖 IA & Previsões                       │
-│                                          │
-│  📈 Análise Gráfica                      │
-│                                          │
-│  🚨 Alertas                              │
-│                                          │
-│  📄 Relatórios                           │
-│                                          │
-│  ⚙️ Configurações                        │
-│                                          │
-└──────────────────────────────────────────┘
-Informações apresentadas
-💧 Nível da água
-📏 Distância medida
-📡 Status do sensor
-☁️ Conexão com Firebase
-🚨 Alertas
-🗺️ Mapa interativo
-📈 Indicadores e gráficos
-🤖 Área de IA e previsões
-📱 Comunicação de ocorrências
 🤖 Inteligência Artificial
 
-O projeto possui uma proposta de utilização de Inteligência Artificial e Machine Learning para análise de dados e apoio à identificação de situações de risco relacionadas a enchentes.
+O FloodSense AI possui uma proposta de utilização de Inteligência Artificial e Machine Learning para análise dos dados e apoio à identificação de situações de risco.
 
-A aplicação dessas técnicas faz parte da proposta tecnológica do FloodSense AI.
+A IA faz parte da proposta tecnológica do projeto e é apresentada dentro do contexto de um protótipo acadêmico.
 
-ℹ️ Transparência do protótipo: algumas informações apresentadas no dashboard são simuladas ou demonstrativas, pois o projeto encontra-se em fase de MVP/protótipo acadêmico.
+ℹ️ Transparência: algumas informações apresentadas no dashboard são simuladas ou demonstrativas. O projeto não é apresentado como uma plataforma operacional de previsão de enchentes em produção.
 
-Dessa forma, o FloodSense AI não é apresentado como uma plataforma operacional de previsão de enchentes em produção, mas como uma prova de conceito acadêmica.
+☁️ Arquitetura
+<div align="center">
 
-☁️ Arquitetura tecnológica
-┌──────────────────────┐
-│       📡 SENSOR      │
-│       AJ-SR04M       │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│       🔌 ESP32       │
-│        IoT           │
-└──────────┬───────────┘
-           │
-         Wi-Fi
-           │
-           ▼
-┌──────────────────────┐
-│     ☁️ FIREBASE      │
-│   Realtime Database  │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│    🖥️ DASHBOARD      │
-│         WEB          │
-└──────────┬───────────┘
-           │
-           ▼
-┌──────────────────────┐
-│   🚨 ANÁLISE E       │
-│       ALERTAS        │
-└──────────────────────┘
+📡 SENSOR
+
+AJ-SR04M
+
+↓
+
+🔌 IoT
+
+ESP32
+
+↓
+
+📶 CONECTIVIDADE
+
+Wi-Fi
+
+↓
+
+☁️ CLOUD
+
+Firebase Realtime Database
+
+↓
+
+🖥️ APLICAÇÃO
+
+FloodSense AI Dashboard
+
+</div>
 🔐 Segurança
 
-A segurança faz parte dos conceitos considerados na proposta do FloodSense AI.
+A segurança foi considerada durante a definição da solução, especialmente nos aspectos relacionados à comunicação, armazenamento e controle de acesso.
 
-🛡️ Conceitos considerados
-🔐 Segurança	Aplicação
-🔒 Proteção de dados	Consideração na arquitetura
-🛡️ Controle de acesso	Conceito previsto
-🔐 Comunicação segura	Consideração na transmissão
-✅ Validação	Tratamento das informações
-☁️ Segurança de infraestrutura	Consideração no ambiente cloud
+Conceitos considerados
+🔒 Proteção de dados
+🛡️ Controle de acesso
+🔐 Comunicação segura
+✅ Validação de informações
+☁️ Segurança da infraestrutura
 
-⚠️ Importante: o FloodSense AI é um protótipo acadêmico. Algumas configurações utilizadas durante os testes foram simplificadas para facilitar a demonstração. Uma implementação em produção exigiria autenticação, regras de acesso adequadas, gerenciamento seguro de credenciais, validação dos dados e outros mecanismos de segurança.
+⚠️ O FloodSense AI é um protótipo acadêmico. Algumas configurações utilizadas durante os testes foram simplificadas para a demonstração. Uma implementação em produção exigiria autenticação, regras de acesso, gerenciamento seguro de credenciais e validação adequada dos dados.
 
-🧪 Validação do protótipo
+🧪 Validação
 
-O protótipo físico foi utilizado para validar a comunicação entre o sensor, o ESP32, o Firebase e o dashboard.
+O protótipo foi utilizado para validar a integração entre os principais componentes:
 
-Fluxo validado
-📏 Sensor
-    ↓
-🔌 ESP32
-    ↓
-📶 Wi-Fi
-    ↓
-☁️ Firebase
-    ↓
-🖥️ Dashboard
+Sensor → ESP32 → Wi-Fi → Firebase → Dashboard
 
-Durante os testes, o sensor realizou leituras físicas e o ESP32 transmitiu os dados para o Firebase, possibilitando a visualização dessas informações na interface web.
+Durante os testes, o sensor realizou medições físicas e o ESP32 transmitiu os dados para o Firebase, possibilitando sua visualização na interface web.
 
-📱 Comunicação de ocorrências
-
-O dashboard também disponibiliza uma opção de comunicação de ocorrência por WhatsApp, permitindo direcionar o usuário para um canal de comunicação.
-
-<div align="center">
-🚨 Identificou uma ocorrência?
-
-📱 FALAR PELO WHATSAPP
-
-</div>
 🛠️ Tecnologias
 <div align="center">
-Categoria	Tecnologias
-🔌 Hardware	ESP32 • AJ-SR04M
-🌐 Front-end	HTML5 • CSS3 • JavaScript
-☁️ Cloud	Firebase Realtime Database
-📦 Runtime	Node.js
-💻 Desenvolvimento	Visual Studio Code
-📚 Versionamento	Git • GitHub
-🚀 Deploy	GitHub Pages
-</div>
-📁 Estrutura do projeto
+
+|         Área         | Tecnologias                |
+| :------------------: | -------------------------- |
+|    🔌 **Hardware**   | ESP32 • AJ-SR04M           |
+|      🌐 **Web**      | HTML5 • CSS3 • JavaScript  |
+|     ☁️ **Cloud**     | Firebase Realtime Database |
+|    📦 **Runtime**    | Node.js                    |
+|      💻 **IDE**      | Visual Studio Code         |
+| 📚 **Versionamento** | Git • GitHub               |
+|     🚀 **Deploy**    | GitHub Pages               |
+
+📁 Estrutura
+
 floodsense-ai/
 │
 ├── 📁 assets/
-│
 ├── 📁 firmware/
 │
 ├── 📄 index.html
@@ -230,41 +199,45 @@ floodsense-ai/
 ├── 🎨 style.css
 ├── 📦 package.json
 └── 📦 package-lock.json
+
 👥 Equipe
 👩‍💻 Leila Victoria Lima Borges
-Desenvolvimento e integração do sistema
 
-Responsável pela implementação e integração das principais partes técnicas do projeto:
+Desenvolvimento • Integração • Protótipo
 
-💻 Desenvolvimento do sistema web
-🖥️ Desenvolvimento e estruturação do dashboard
-🔌 Implementação do protótipo físico
-📡 Integração ESP32 + sensor
-☁️ Integração ESP32 + Firebase
-🧪 Testes e validação
-🛠️ Correções e ajustes do sistema
-🎨 Correção e revisão dos slides
-📄 Revisão e ajustes da documentação
-🎤 Montagem e organização da apresentação
-🔗 Integração geral dos componentes do projeto
+Responsável pelo desenvolvimento e integração técnica do projeto:
+
+Desenvolvimento do sistema web
+Desenvolvimento do dashboard
+Implementação do protótipo físico
+Integração ESP32 + AJ-SR04M
+Integração ESP32 + Firebase
+Testes e validação
+Correções e ajustes do sistema
+Revisão dos slides
+Revisão da documentação
+Montagem da apresentação
+Integração geral do projeto
 👨‍💻 Pedro Gustavo Figueira Bezerra
-Slides e apresentação
 
-Responsável principalmente pela preparação dos materiais visuais e participação na apresentação:
+Slides • Material visual • Apresentação
 
-🎨 Elaboração dos slides
-📊 Organização do material visual
-📝 Estruturação da apresentação
-🎤 Participação na apresentação oral
+Responsável por:
+
+Elaboração dos slides
+Organização do material visual
+Preparação da apresentação
+Participação na apresentação oral
 👨‍💻 Vagner de Araújo Lima
-Documentação e apresentação
 
-Responsável principalmente pela documentação do projeto:
+Documentação • Apresentação
 
-📄 Desenvolvimento da documentação
-📝 Organização das informações técnicas
-📚 Estruturação documental
-🎤 Participação na apresentação oral
+Responsável por:
+
+Desenvolvimento da documentação
+Organização das informações técnicas
+Estruturação documental
+Participação na apresentação oral
 🎤 Apresentação do TCC
 
 A apresentação oral do projeto será realizada por:
@@ -276,51 +249,27 @@ A apresentação oral do projeto será realizada por:
 
 Os integrantes apresentarão o projeto em nome da equipe durante a avaliação acadêmica.
 
-A preparação final dos materiais, organização da apresentação e integração do projeto foram realizadas no desenvolvimento do trabalho.
-
-🎓 Instituição
+🎓 Universidade Paulista — UNIP
 <div align="center">
-UNIVERSIDADE PAULISTA — UNIP
+
 Sistemas de Informação
 
 2026
 
 <br>
-
 🌊 FloodSense AI
 
 Tecnologia para transformar dados em informação e apoiar o monitoramento de enchentes urbanas.
 
+<br>
+
+🌊 ACESSAR O SISTEMA
+
 </div>
-📌 Status do projeto
+
 <div align="center">
 🟢 MVP / PROTÓTIPO ACADÊMICO
-<br>
 
-Hardware
-↓
-IoT
-↓
-Cloud
-↓
-Dashboard Web
-↓
-Análise de Dados
+Hardware + IoT + Cloud + Dashboard + Análise de Dados
 
-<br>
-
-O FloodSense AI encontra-se em desenvolvimento como uma prova de conceito acadêmica, demonstrando a integração entre hardware, software, armazenamento em nuvem e visualização de dados.
-
-</div>
-🌊 FloodSense AI
-<div align="center">
-Transformando dados em informação para apoiar o monitoramento de enchentes urbanas.
-<br>
-
-🚀 ACESSAR O SISTEMA
-
-<br><br>
-
-UNIP • Sistemas de Informação • 2026
-
-</div>
+</div> ```
