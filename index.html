@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════════════════╗
+  ║         FloodSense AI — Sistema Inteligente de Enchentes         ║
+  ║         Versão: 3.0  |  TCC — Sistemas de Informação             ║
+  ║         Arquivo: index.html  (Estrutura semântica)               ║
+  ╠══════════════════════════════════════════════════════════════════╣
+  ║  DEPENDÊNCIAS (CDN — sem npm/build):                             ║
+  ║  ├── Chart.js 4.4.1  → Gráficos interativos                      ║
+  ║  ├── Leaflet 1.9.4   → Mapa interativo com OpenStreetMap         ║
+  ║  └── Lucide Icons    → Ícones SVG modernos                       ║
+  ║                                                                  ║
+  ╚══════════════════════════════════════════════════════════════════╝
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="FloodSense AI – Sistema Inteligente de Monitoramento e Previsão de Enchentes Urbanas. TCC — Sistemas de Informação." />
+  <title>FloodSense AI — Monitoramento de Enchentes</title>
+
+  <!-- ── Tipografia: Space Grotesk + JetBrains Mono ── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  <!--importa o script.js-->
+  <script src="./data/sensores.js"></script>
+
+  <!-- ── Lucide Icons ── -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- ── Chart.js 4.4.1 ── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+  <!-- ── Leaflet CSS + JS (mapa interativo) ── -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- ── Estilos do projeto ── -->
+  <link rel="stylesheet" href="style.css" />
+
+
+  <!-- ══ TELA DE LOGIN ══════════════════════════════════════════════
+       Renderizada quando: FloodSense.state.loggedIn === false
+       Escondida após login bem-sucedido
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="login-screen">
+    <div class="login-bg-grid" aria-hidden="true"></div>
+
+    <div class="login-card" role="main">
+      <!-- Logo -->
+      <div class="login-logo">
+        <div class="login-logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
+            <rect width="48" height="48" rx="12" fill="#0ea5e9" fill-opacity="0.15"/>
+            <rect width="48" height="48" rx="12" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.4"/>
+            <path d="M10 26 Q18 18 24 26 Q30 34 38 26" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <path d="M10 33 Q18 25 24 33 Q30 41 38 33" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" fill="none" stroke-opacity="0.5"/>
+            <circle cx="24" cy="17" r="5" fill="#38bdf8" fill-opacity="0.9"/>
+            <circle cx="24" cy="17" r="2" fill="white"/>
+          </svg>
+        </div>
+        <div class="login-logo-text">
+          <h1 class="login-title">FloodSense AI</h1>
+          <p class="login-subtitle">Sistema Inteligente de Monitoramento de Enchentes</p>
+        </div>
+      </div>
+
+      <!-- Badge acadêmico -->
+      <div class="login-badge">
+        <span class="badge-dot"></span>
+        TCC — Sistemas de Informação · São Paulo · 2025
+      </div>
+
+      <!-- Formulário de login -->
+      <form id="login-form" onsubmit="FloodSense.handleLogin(event)" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="input-email">
+            <i data-lucide="mail" aria-hidden="true"></i> E-mail
+          </label>
+          <input
+            id="input-email"
+            type="email"
+            class="form-input"
+            placeholder="admin@floodsense.ai"
+            value="admin@floodsense.ai"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-password">
+            <i data-lucide="lock" aria-hidden="true"></i> Senha
+          </label>
+          <div class="input-password-wrap">
+            <input
+              id="input-password"
+              type="password"
+              class="form-input"
+              placeholder="••••••••"
+              value="floodsense2025"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="toggle-pw" onclick="FloodSense.togglePassword()" aria-label="Mostrar/ocultar senha">
+              <i data-lucide="eye" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Erro de login — exibido via JS -->
+        <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
+
+        <button type="submit" class="btn-login" id="btn-login">
+          <i data-lucide="log-in" aria-hidden="true"></i>
+          <span>Entrar no Sistema</span>
+        </button>
+      </form>
+
+      <!-- Credenciais de demonstração -->
+      <div class="login-demo-hint">
+        <span>Demo:</span>
+        <code>admin@floodsense.ai</code>
+        <span>/</span>
+        <code>floodsense2025</code>
+      </div>
+
+      <p class="login-footer-note">
+        Projeto acadêmico · Dados simulados · Não representa sistema real
+      </p>
+    </div>
+  </div>
+  <!-- /div#login-screen -->
+
+
+  <!-- ══ APP PRINCIPAL ══════════════════════════════════════════════
+       Exibido após login bem-sucedido
+       Layout: Sidebar fixa + Área principal (navbar + conteúdo)
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="app-shell" hidden>
+
+    <!-- Overlay para fechar sidebar no mobile -->
+    <div id="sidebar-overlay" onclick="FloodSense.closeSidebar()" aria-hidden="true"></div>
+
+    <!-- ════════════════════════════════════════════
+         SIDEBAR — Navegação lateral fixa
+    ════════════════════════════════════════════ -->
+    <aside id="sidebar" role="navigation" aria-label="Menu principal">
+
+      <!-- Logo -->
+      <div class="sidebar-logo">
+        <div class="sb-logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+            <rect width="36" height="36" rx="9" fill="#38bdf8" fill-opacity="0.12"/>
+            <path d="M6 20 Q12 14 18 20 Q24 26 30 20" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+            <path d="M6 26 Q12 20 18 26 Q24 32 30 26" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round" fill="none" stroke-opacity="0.45"/>
+            <circle cx="18" cy="13" r="4" fill="#38bdf8" fill-opacity="0.85"/>
+          </svg>
+        </div>
+        <div class="sb-logo-text">
+          <span class="sb-logo-name">FloodSense</span>
+          <span class="sb-logo-tag">AI · v3.0</span>
+        </div>
+        <!-- Fechar sidebar no mobile -->
+        <button class="sb-close-btn" onclick="FloodSense.closeSidebar()" aria-label="Fechar menu">
+          <i data-lucide="x" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <!-- Status global -->
+      <div class="sb-status-bar">
+        <span class="sb-status-dot" id="sb-status-dot"></span>
+        <span id="sb-status-text">Todos sistemas ativos</span>
+      </div>
+
+      <!-- ── Grupo: Monitoramento ── -->
+      <div class="nav-group">
+        <span class="nav-group-label">Monitoramento</span>
+        <button class="nav-btn" data-screen="dashboard" onclick="FloodSense.navigate('dashboard')">
+          <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+          <span>Dashboard</span>
+          <span class="nav-tag live-tag">LIVE</span>
+        </button>
+        <button class="nav-btn" data-screen="sensors" onclick="FloodSense.navigate('sensors')">
+          <i data-lucide="radio" aria-hidden="true"></i>
+          <span>Sensores IoT</span>
+          <span class="nav-count" id="nav-count-sensors">12</span>
+        </button>
+        <button class="nav-btn" data-screen="map" onclick="FloodSense.navigate('map')">
+          <i data-lucide="map-pin" aria-hidden="true"></i>
+          <span>Mapa Interativo</span>
+        </button>
+      </div>
+
+      <!-- ── Grupo: IA & Análise ── -->
+      <div class="nav-group">
+        <span class="nav-group-label">IA & Análise</span>
+        <button class="nav-btn" data-screen="ai" onclick="FloodSense.navigate('ai')">
+          <i data-lucide="brain" aria-hidden="true"></i>
+          <span>IA & Previsões</span>
+          <span class="nav-tag ai-tag">ML</span>
+        </button>
+        <button class="nav-btn" data-screen="charts" onclick="FloodSense.navigate('charts')">
+          <i data-lucide="bar-chart-3" aria-hidden="true"></i>
+          <span>Análise Gráfica</span>
+        </button>
+      </div>
+
+      <!-- ── Grupo: Gestão ── -->
+      <div class="nav-group">
+        <span class="nav-group-label">Gestão</span>
+        <button class="nav-btn" data-screen="alerts" onclick="FloodSense.navigate('alerts')">
+          <i data-lucide="bell" aria-hidden="true"></i>
+          <span>Alertas</span>
+          <span class="nav-count alert-count" id="nav-count-alerts">3</span>
+        </button>
+        <button class="nav-btn" data-screen="reports" onclick="FloodSense.navigate('reports')">
+          <i data-lucide="file-text" aria-hidden="true"></i>
+          <span>Relatórios</span>
+        </button>
+        <button class="nav-btn" data-screen="config" onclick="FloodSense.navigate('config')">
+          <i data-lucide="settings" aria-hidden="true"></i>
+          <span>Configurações</span>
+        </button>
+      </div>
+
+      <!-- Rodapé da sidebar -->
+      <div class="sb-footer">
+        <div class="sb-ai-card">
+          <div class="sb-ai-row">
+            <i data-lucide="cpu" aria-hidden="true"></i>
+            <span>Modelo LSTM+RF</span>
+            <span class="ai-online-dot"></span>
+          </div>
+          <div class="sb-ai-meta">
+            Acurácia: <strong id="sb-accuracy">91.4%</strong> · <span id="sb-upd">agora</span>
+          </div>
+        </div>
+        <!-- Botão logout -->
+        <button class="btn-logout" onclick="FloodSense.logout()">
+          <i data-lucide="log-out" aria-hidden="true"></i>
+          <span>Sair</span>
+        </button>
+      </div>
+
+    </aside>
+    <!-- /aside#sidebar -->
+
+    <!-- ════════════════════════════════════════════
+         ÁREA PRINCIPAL
+    ════════════════════════════════════════════ -->
+    <div id="main-area">
+
+      <!-- ── Navbar Superior ── -->
+      <header id="top-navbar">
+        <div class="navbar-left">
+          <button class="hamburger-btn" onclick="FloodSense.toggleSidebar()" aria-label="Menu">
+            <i data-lucide="menu" aria-hidden="true"></i>
+          </button>
+          <div>
+            <h1 id="page-title" class="page-title">Dashboard</h1>
+            <p id="page-subtitle" class="page-subtitle">São Paulo · SP · Brasil</p>
+          </div>
+        </div>
+        <div class="navbar-right">
+          <!-- Barra de alerta crítico piscante -->
+          <div id="critical-bar" class="critical-bar" role="alert">
+            <i data-lucide="siren" aria-hidden="true"></i>
+            <span id="critical-bar-text">Zona Norte: CRÍTICO 110cm</span>
+          </div>
+          <!-- Status IoT -->
+          <div class="iot-pill" title="Sensores online">
+            <span class="iot-pulse"></span>
+            IoT <span id="online-count">11</span>/12
+          </div>
+          <!-- Relógio -->
+          <div class="clock-pill" aria-label="Horário">
+            <i data-lucide="clock" aria-hidden="true"></i>
+            <time id="live-clock">--:--:--</time>
+          </div>
+        </div>
+      </header>
+      
+        <!-- ══ SENSOR FÍSICO REAL — FS-001 ═══════════════════════════════ -->
+        <section id="real-sensor-panel" class="real-sensor-panel" aria-label="Sensor físico real">
+          <div class="real-sensor-head">
+            <div>
+              <div class="real-sensor-kicker">
+                <span class="real-live-dot"></span>
+                DADO REAL — PROTÓTIPO FÍSICO
+              </div>
+              <h2>🌊 Sensor Físico FS-001</h2>
+              <p>Sensor Centro · ESP32 + AJ-SR04M · Firebase Realtime Database</p>
+            </div>
+            <div id="real-sensor-status-badge" class="real-status-badge">CONECTANDO...</div>
+          </div>
+
+          <div class="real-sensor-grid">
+            <div class="real-metric">
+              <span>NÍVEL DA ÁGUA</span>
+              <strong id="real-level">--</strong>
+              <small>cm</small>
+            </div>
+            <div class="real-metric">
+              <span>DISTÂNCIA MEDIDA</span>
+              <strong id="real-distance">--</strong>
+              <small>cm</small>
+            </div>
+            <div class="real-metric">
+              <span>STATUS</span>
+              <strong id="real-status">--</strong>
+              <small id="real-updated">aguardando leitura</small>
+            </div>
+            <div class="real-metric real-connection">
+              <span>CONEXÃO</span>
+              <strong>ESP32 → Firebase</strong>
+              <small id="real-connection-text">verificando...</small>
+            </div>
+          </div>
+        </section>
+        <!-- /#real-sensor-panel -->
+
+        <!-- ══ CONTATO RÁPIDO — WHATSAPP ═══════════════════════════════ -->
+        <section class="fs-contact-card" aria-label="Contato rápido pelo WhatsApp">
+          <div class="fs-contact-info">
+            <strong>Precisa comunicar uma ocorrência?</strong>
+            <span>Entre em contato rapidamente com a equipe responsável.</span>
+          </div>
+          <a
+            class="fs-whatsapp-btn"
+            href="https://wa.me/?text=Olá!%20Gostaria%20de%20comunicar%20uma%20ocorrência%20relacionada%20a%20alagamento."
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir WhatsApp para comunicar uma ocorrência"
+          >
+            <i data-lucide="message-circle" aria-hidden="true"></i>
+            <span>Falar pelo WhatsApp</span>
+          </a>
+        </section>
+        <!-- /#whatsapp-contact -->
+
+<main id="app-root" role="main">
+        <!-- Conteúdo dinâmico injetado pelo script.js -->
+      </main>
+
+    </div>
+    <!-- /div#main-area -->
+  </div>
+  <!-- /div#app-shell -->
+
+  <!-- ══ Toast notifications ══ -->
+  <div id="toast-container" aria-live="assertive" role="status"></div>
+
+  <!-- ══ Script principal ══ -->
+
+  <script>
+    /* ══ LEITURA REAL DO FS-001 — independente da simulação existente ══ */
+    (() => {
+      const REAL_FIREBASE_HOST = 'floodsense-ai-7a6b9-default-rtdb.firebaseio.com';
+      const REAL_SENSOR_ID = 'FS-001';
+      const panel = document.getElementById('real-sensor-panel');
+
+      function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      }
+
+      function setBadge(text, kind) {
+        const el = document.getElementById('real-sensor-status-badge');
+        if (!el) return;
+        el.textContent = text;
+        el.className = 'real-status-badge ' + (kind || '');
+      }
+
+      function showRealPanelOnlyOnDashboard() {
+        if (!panel) return;
+        const title = document.getElementById('page-title');
+        const isDashboard = !title || /dashboard/i.test(title.textContent || '');
+        panel.style.display = isDashboard ? '' : 'none';
+      }
+
+      async function updateRealSensor() {
+        try {
+          const url = `https://${REAL_FIREBASE_HOST}/sensors/${REAL_SENSOR_ID}.json`;
+          const response = await fetch(url, { cache: 'no-store' });
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+
+          const data = await response.json();
+          if (!data || typeof data.level !== 'number') {
+            throw new Error('Dados do FS-001 inválidos');
+          }
+
+          const level = Number(data.level);
+          const distance = Math.max(0, 100 - level);
+          const status = String(data.status || 'normal').toLowerCase();
+
+          setText('real-level', level.toFixed(1));
+          setText('real-distance', distance.toFixed(1));
+          setText('real-status', status === 'critical' ? 'CRÍTICO' :
+                                  status === 'warning' ? 'ATENÇÃO' : 'NORMAL');
+          setText('real-updated', 'atualizado agora');
+          setText('real-connection-text', 'conectado');
+
+          const badgeKind = status === 'critical' ? 'critical' :
+                            status === 'warning' ? 'warning' : 'online';
+          setBadge('● ONLINE · FS-001', badgeKind);
+        } catch (error) {
+          setText('real-connection-text', 'aguardando ESP32/Firebase');
+          setText('real-updated', 'sem leitura no momento');
+          setBadge('○ SEM LEITURA', '');
+        }
+
+        showRealPanelOnlyOnDashboard();
+      }
+
+      updateRealSensor();
+      setInterval(updateRealSensor, 3000);
+
+      // Atualiza os ícones Lucide, incluindo o botão do WhatsApp.
+      if (window.lucide) window.lucide.createIcons();
+
+      const observer = new MutationObserver(showRealPanelOnlyOnDashboard);
+      observer.observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>
