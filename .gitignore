@@ -1,0 +1,16 @@
+﻿# ---- Segredos: NUNCA versionar ----
+segredos.env
+secrets.h
+*.env
+
+# ---- Gerados automaticamente ----
+__pycache__/
+.venv/
+.vscode/
+*.pyc
+
+node_modules/
+
+*.log
+
+*.pkl

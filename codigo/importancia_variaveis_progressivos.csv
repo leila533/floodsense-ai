@@ -1,0 +1,11 @@
+modelo_progressivo,feature,importance
+STARTUP,water_level,1.0
+LAG_5,water_level_lag_1,0.5201847764888697
+LAG_5,water_level,0.47981522351113026
+LAG_15,water_level,0.3763149052626865
+LAG_15,water_level_lag_3,0.3349663012708387
+LAG_15,water_level_lag_1,0.2887187934664747
+FULL,water_level,0.3105677302908861
+FULL,water_level_lag_3,0.24868501087302833
+FULL,water_level_lag_6,0.23264238105414098
+FULL,water_level_lag_1,0.20810487778194456

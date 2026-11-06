@@ -1,16 +1,8 @@
 <!DOCTYPE html>
 <!--
-  ╔══════════════════════════════════════════════════════════════════╗
-  ║         FloodSense AI — Sistema Inteligente de Enchentes         ║
-  ║         Versão: 3.0  |  TCC — Sistemas de Informação             ║
-  ║         Arquivo: index.html  (Estrutura semântica)               ║
-  ╠══════════════════════════════════════════════════════════════════╣
-  ║  DEPENDÊNCIAS (CDN — sem npm/build):                             ║
-  ║  ├── Chart.js 4.4.1  → Gráficos interativos                      ║
-  ║  ├── Leaflet 1.9.4   → Mapa interativo com OpenStreetMap         ║
-  ║  └── Lucide Icons    → Ícones SVG modernos                       ║
-  ║                                                                  ║
-  ╚══════════════════════════════════════════════════════════════════╝
+  FloodSense AI — Sistema Inteligente de Enchentes
+  Arquivo: index.html (estrutura)
+  Dependências (CDN): Chart.js 4.4.1 · Leaflet 1.9.4 · Lucide Icons · Firebase 10.12.2
 -->
 <html lang="pt-BR">
 <head>
@@ -19,32 +11,33 @@
   <meta name="description" content="FloodSense AI – Sistema Inteligente de Monitoramento e Previsão de Enchentes Urbanas. TCC — Sistemas de Informação." />
   <title>FloodSense AI — Monitoramento de Enchentes</title>
 
-  <!-- ── Tipografia: Space Grotesk + JetBrains Mono ── -->
+  <!-- Tipografia -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  
-  <!--importa o script.js-->
-  <script src="./data/sensores.js"></script>
 
-  <!-- ── Lucide Icons ── -->
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
-  <!-- ── Chart.js 4.4.1 ── -->
+  <!-- Chart.js 4.4.1 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 
-  <!-- ── Leaflet CSS + JS (mapa interativo) ── -->
+  <!-- Leaflet (mapa interativo) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- ── Estilos do projeto ── -->
+  <!-- Firebase Authentication (login do painel) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-auth-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-database-compat.js"></script>
+
+  <!-- Estilos do projeto -->
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="responsivo.css" />
+</head>
+<body>
 
-
-  <!-- ══ TELA DE LOGIN ══════════════════════════════════════════════
-       Renderizada quando: FloodSense.state.loggedIn === false
-       Escondida após login bem-sucedido
-  ══════════════════════════════════════════════════════════════════ -->
+  <!-- ══ TELA DE LOGIN ══ -->
   <div id="login-screen">
     <div class="login-bg-grid" aria-hidden="true"></div>
 
@@ -52,13 +45,12 @@
       <!-- Logo -->
       <div class="login-logo">
         <div class="login-logo-icon" aria-hidden="true">
-          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
-            <rect width="48" height="48" rx="12" fill="#0ea5e9" fill-opacity="0.15"/>
-            <rect width="48" height="48" rx="12" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.4"/>
-            <path d="M10 26 Q18 18 24 26 Q30 34 38 26" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-            <path d="M10 33 Q18 25 24 33 Q30 41 38 33" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" fill="none" stroke-opacity="0.5"/>
-            <circle cx="24" cy="17" r="5" fill="#38bdf8" fill-opacity="0.9"/>
-            <circle cx="24" cy="17" r="2" fill="white"/>
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="44" height="44">
+            <rect width="36" height="36" rx="9" fill="#0066FF"/>
+            <path d="M11 27V10h14" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11 17.5c2.5-2 4.5-2 7 0s4.5 2 7 0" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M11 24c2.5-2 4.5-2 7 0s4.5 2 7 0" stroke="#00B8D9" stroke-width="2.6" stroke-linecap="round"/>
+            <circle cx="27" cy="9" r="2.2" fill="#00B8D9"/>
           </svg>
         </div>
         <div class="login-logo-text">
@@ -70,11 +62,11 @@
       <!-- Badge acadêmico -->
       <div class="login-badge">
         <span class="badge-dot"></span>
-        TCC — Sistemas de Informação · São Paulo · 2025
+        TCC — Sistemas de Informação · São Paulo · 2026
       </div>
 
       <!-- Formulário de login -->
-      <form id="login-form" onsubmit="FloodSense.handleLogin(event)" novalidate>
+      <form id="login-form" novalidate>
         <div class="form-group">
           <label class="form-label" for="input-email">
             <i data-lucide="mail" aria-hidden="true"></i> E-mail
@@ -83,8 +75,8 @@
             id="input-email"
             type="email"
             class="form-input"
-            placeholder="admin@floodsense.ai"
-            value="admin@floodsense.ai"
+            placeholder="seu@email.com"
+            value=""
             autocomplete="email"
             required
           />
@@ -100,7 +92,7 @@
               type="password"
               class="form-input"
               placeholder="••••••••"
-              value="floodsense2025"
+              value=""
               autocomplete="current-password"
               required
             />
@@ -118,50 +110,37 @@
           <span>Entrar no Sistema</span>
         </button>
       </form>
-
-      <!-- Credenciais de demonstração -->
-      <div class="login-demo-hint">
-        <span>Demo:</span>
-        <code>admin@floodsense.ai</code>
-        <span>/</span>
-        <code>floodsense2025</code>
-      </div>
-
       <p class="login-footer-note">
-        Projeto acadêmico · Dados simulados · Não representa sistema real
+        Projeto acadêmico · FS-001: dado REAL (ESP32) · Demais sensores: SIMULADOS
       </p>
     </div>
   </div>
   <!-- /div#login-screen -->
 
 
-  <!-- ══ APP PRINCIPAL ══════════════════════════════════════════════
-       Exibido após login bem-sucedido
-       Layout: Sidebar fixa + Área principal (navbar + conteúdo)
-  ══════════════════════════════════════════════════════════════════ -->
+  <!-- ══ APP PRINCIPAL ══ -->
   <div id="app-shell" hidden>
 
     <!-- Overlay para fechar sidebar no mobile -->
     <div id="sidebar-overlay" onclick="FloodSense.closeSidebar()" aria-hidden="true"></div>
 
-    <!-- ════════════════════════════════════════════
-         SIDEBAR — Navegação lateral fixa
-    ════════════════════════════════════════════ -->
+    <!-- SIDEBAR -->
     <aside id="sidebar" role="navigation" aria-label="Menu principal">
 
       <!-- Logo -->
       <div class="sidebar-logo">
         <div class="sb-logo-icon" aria-hidden="true">
-          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-            <rect width="36" height="36" rx="9" fill="#38bdf8" fill-opacity="0.12"/>
-            <path d="M6 20 Q12 14 18 20 Q24 26 30 20" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-            <path d="M6 26 Q12 20 18 26 Q24 32 30 26" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round" fill="none" stroke-opacity="0.45"/>
-            <circle cx="18" cy="13" r="4" fill="#38bdf8" fill-opacity="0.85"/>
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="34" height="34">
+            <rect width="36" height="36" rx="9" fill="#0066FF"/>
+            <path d="M11 27V10h14" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11 17.5c2.5-2 4.5-2 7 0s4.5 2 7 0" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M11 24c2.5-2 4.5-2 7 0s4.5 2 7 0" stroke="#00B8D9" stroke-width="2.6" stroke-linecap="round"/>
+            <circle cx="27" cy="9" r="2.2" fill="#00B8D9"/>
           </svg>
         </div>
         <div class="sb-logo-text">
           <span class="sb-logo-name">FloodSense</span>
-          <span class="sb-logo-tag">AI · v3.0</span>
+          <span class="sb-logo-tag">AI · MONITORAMENTO INTELIGENTE</span>
         </div>
         <!-- Fechar sidebar no mobile -->
         <button class="sb-close-btn" onclick="FloodSense.closeSidebar()" aria-label="Fechar menu">
@@ -175,7 +154,7 @@
         <span id="sb-status-text">Todos sistemas ativos</span>
       </div>
 
-      <!-- ── Grupo: Monitoramento ── -->
+      <!-- Grupo: Monitoramento -->
       <div class="nav-group">
         <span class="nav-group-label">Monitoramento</span>
         <button class="nav-btn" data-screen="dashboard" onclick="FloodSense.navigate('dashboard')">
@@ -194,7 +173,7 @@
         </button>
       </div>
 
-      <!-- ── Grupo: IA & Análise ── -->
+      <!-- Grupo: IA & Análise -->
       <div class="nav-group">
         <span class="nav-group-label">IA & Análise</span>
         <button class="nav-btn" data-screen="ai" onclick="FloodSense.navigate('ai')">
@@ -208,7 +187,7 @@
         </button>
       </div>
 
-      <!-- ── Grupo: Gestão ── -->
+      <!-- Grupo: Gestão -->
       <div class="nav-group">
         <span class="nav-group-label">Gestão</span>
         <button class="nav-btn" data-screen="alerts" onclick="FloodSense.navigate('alerts')">
@@ -231,15 +210,15 @@
         <div class="sb-ai-card">
           <div class="sb-ai-row">
             <i data-lucide="cpu" aria-hidden="true"></i>
-            <span>Modelo LSTM+RF</span>
+            <span id="sb-ai-model">V4 Progressivo</span>
             <span class="ai-online-dot"></span>
           </div>
           <div class="sb-ai-meta">
-            Acurácia: <strong id="sb-accuracy">91.4%</strong> · <span id="sb-upd">agora</span>
+            Status: <strong id="sb-ai-status">AGUARDANDO</strong> · <span id="sb-upd">aguardando</span>
           </div>
         </div>
         <!-- Botão logout -->
-        <button class="btn-logout" onclick="FloodSense.logout()">
+        <button class="btn-logout" onclick="sairFirebase()">
           <i data-lucide="log-out" aria-hidden="true"></i>
           <span>Sair</span>
         </button>
@@ -248,12 +227,10 @@
     </aside>
     <!-- /aside#sidebar -->
 
-    <!-- ════════════════════════════════════════════
-         ÁREA PRINCIPAL
-    ════════════════════════════════════════════ -->
+    <!-- ÁREA PRINCIPAL -->
     <div id="main-area">
 
-      <!-- ── Navbar Superior ── -->
+      <!-- Navbar Superior -->
       <header id="top-navbar">
         <div class="navbar-left">
           <button class="hamburger-btn" onclick="FloodSense.toggleSidebar()" aria-label="Menu">
@@ -266,9 +243,14 @@
         </div>
         <div class="navbar-right">
           <!-- Barra de alerta crítico piscante -->
-          <div id="critical-bar" class="critical-bar" role="alert">
+          <div id="critical-bar" class="critical-bar hidden" role="alert">
             <i data-lucide="siren" aria-hidden="true"></i>
-            <span id="critical-bar-text">Zona Norte: CRÍTICO 110cm</span>
+            <span id="critical-bar-text">Verificando sensores...</span>
+          </div>
+          <!-- Atualização automática -->
+          <div class="auto-pill" title="Os dados são consultados automaticamente">
+            <span class="iot-pulse"></span>
+            Atualização automática
           </div>
           <!-- Status IoT -->
           <div class="iot-pill" title="Sensores online">
@@ -282,8 +264,9 @@
           </div>
         </div>
       </header>
-      
-        <!-- ══ SENSOR FÍSICO REAL — FS-001 ═══════════════════════════════ -->
+
+      <div id="content-scroll">
+        <!-- ══ SENSOR FÍSICO REAL — FS-001 ══ -->
         <section id="real-sensor-panel" class="real-sensor-panel" aria-label="Sensor físico real">
           <div class="real-sensor-head">
             <div>
@@ -322,7 +305,7 @@
         </section>
         <!-- /#real-sensor-panel -->
 
-        <!-- ══ CONTATO RÁPIDO — WHATSAPP ═══════════════════════════════ -->
+        <!-- ══ CONTATO RÁPIDO — WHATSAPP ══ -->
         <section class="fs-contact-card" aria-label="Contato rápido pelo WhatsApp">
           <div class="fs-contact-info">
             <strong>Precisa comunicar uma ocorrência?</strong>
@@ -339,93 +322,90 @@
             <span>Falar pelo WhatsApp</span>
           </a>
         </section>
-        <!-- /#whatsapp-contact -->
+        <!-- /whatsapp -->
 
-<main id="app-root" role="main">
-        <!-- Conteúdo dinâmico injetado pelo script.js -->
-      </main>
+        <main id="app-root" role="main">
+          <!-- Conteúdo dinâmico injetado pelo script.js -->
+        </main>
+      </div><!-- /#content-scroll -->
 
     </div>
     <!-- /div#main-area -->
   </div>
   <!-- /div#app-shell -->
 
-  <!-- ══ Toast notifications ══ -->
+  <!-- Toast notifications -->
   <div id="toast-container" aria-live="assertive" role="status"></div>
 
-  <!-- ══ Script principal ══ -->
-
+  <!-- ══ FIREBASE AUTH (login do painel) ══ -->
   <script>
-    /* ══ LEITURA REAL DO FS-001 — independente da simulação existente ══ */
-    (() => {
-      const REAL_FIREBASE_HOST = 'floodsense-ai-7a6b9-default-rtdb.firebaseio.com';
-      const REAL_SENSOR_ID = 'FS-001';
-      const panel = document.getElementById('real-sensor-panel');
+    // Configuração pública do app Web (identificador, não é senha).
+    // Troque SUA_API_KEY pela mesma apiKey do firmware.
+    firebase.initializeApp({
+      apiKey: "AIzaSyA97h2WwIsPw4-bhdBiSme_x8I2wdJ6aGY",
+      authDomain: "floodsense-ai-7a6b9.firebaseapp.com",
+      projectId: "floodsense-ai-7a6b9"
+    });
 
-      function setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
+     const MENSAGENS_LOGIN = {
+      "auth/invalid-email": "E-mail inválido.",
+      "auth/missing-password": "Digite a senha.",
+      "auth/missing-email": "Digite o e-mail.",
+      "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos.",
+      "auth/network-request-failed": "Sem conexão com a internet.",
+      "auth/user-not-found": "Usuário não existe no Firebase.",
+      "auth/wrong-password": "Senha incorreta.",
+      "auth/invalid-credential": "E-mail ou senha incorretos.",
+      "auth/invalid-api-key": "apiKey inválida no index.html.",
+      "auth/operation-not-allowed": "Ative E-mail/senha em Authentication → Sign-in method."
+    };
+
+    let appIniciado = false;
+
+    function mostrarApp() {
+      if (appIniciado) return;
+      appIniciado = true;
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app-shell").hidden = false;
+      FloodSense.bootApp();
+    }
+
+    async function handleLoginFirebase(event) {
+      event.preventDefault();
+
+      const email = document.getElementById("input-email").value.trim();
+      const senha = document.getElementById("input-password").value;
+      const erro = document.getElementById("login-error");
+      const botao = document.getElementById("btn-login");
+
+      erro.textContent = "";
+      botao.disabled = true;
+
+      try {
+        await firebase.auth().signInWithEmailAndPassword(email, senha);
+      } catch (e) {
+        console.error("[FloodSense] Falha no login:", e.code, e.message);
+        const texto = MENSAGENS_LOGIN[e.code] || "Não foi possível entrar.";
+        erro.textContent = texto + " (código: " + e.code + ")";
+      } finally {
+        botao.disabled = false;
       }
+    }
 
-      function setBadge(text, kind) {
-        const el = document.getElementById('real-sensor-status-badge');
-        if (!el) return;
-        el.textContent = text;
-        el.className = 'real-status-badge ' + (kind || '');
-      }
+    function sairFirebase() {
+      firebase.auth().signOut().then(() => location.reload());
+    }
 
-      function showRealPanelOnlyOnDashboard() {
-        if (!panel) return;
-        const title = document.getElementById('page-title');
-        const isDashboard = !title || /dashboard/i.test(title.textContent || '');
-        panel.style.display = isDashboard ? '' : 'none';
-      }
-
-      async function updateRealSensor() {
-        try {
-          const url = `https://${REAL_FIREBASE_HOST}/sensors/${REAL_SENSOR_ID}.json`;
-          const response = await fetch(url, { cache: 'no-store' });
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-
-          const data = await response.json();
-          if (!data || typeof data.level !== 'number') {
-            throw new Error('Dados do FS-001 inválidos');
-          }
-
-          const level = Number(data.level);
-          const distance = Math.max(0, 100 - level);
-          const status = String(data.status || 'normal').toLowerCase();
-
-          setText('real-level', level.toFixed(1));
-          setText('real-distance', distance.toFixed(1));
-          setText('real-status', status === 'critical' ? 'CRÍTICO' :
-                                  status === 'warning' ? 'ATENÇÃO' : 'NORMAL');
-          setText('real-updated', 'atualizado agora');
-          setText('real-connection-text', 'conectado');
-
-          const badgeKind = status === 'critical' ? 'critical' :
-                            status === 'warning' ? 'warning' : 'online';
-          setBadge('● ONLINE · FS-001', badgeKind);
-        } catch (error) {
-          setText('real-connection-text', 'aguardando ESP32/Firebase');
-          setText('real-updated', 'sem leitura no momento');
-          setBadge('○ SEM LEITURA', '');
-        }
-
-        showRealPanelOnlyOnDashboard();
-      }
-
-      updateRealSensor();
-      setInterval(updateRealSensor, 3000);
-
-      // Atualiza os ícones Lucide, incluindo o botão do WhatsApp.
-      if (window.lucide) window.lucide.createIcons();
-
-      const observer = new MutationObserver(showRealPanelOnlyOnDashboard);
-      observer.observe(document.body, { childList: true, subtree: true });
-    })();
+    // Mostra o painel se já houver usuário logado (inclusive ao recarregar a página).
+    firebase.auth().onAuthStateChanged((user) => {
+      console.log("[FloodSense] Estado do login:", user ? user.email : "deslogado");
+      if (user) mostrarApp();
+    });
+    // Liga o formulário ao login do Firebase 
+    document.getElementById("login-form").addEventListener("submit", handleLoginFirebase);
   </script>
 
+  <!-- Lógica do painel (script.js) -->
   <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,19 @@
+informacao,valor
+Sensor,FS-001
+Origem dos dados,ESP32 + AJ-SR04M + Firebase
+Horizonte,60 minutos
+Versão de features,v3_tendencia
+Conjunto de features,CORE
+Modelo escolhido,ET_700_depthNone_leaf1
+Amostras Firebase,508
+Amostras temporais válidas,270
+Amostras desenvolvimento,216
+Amostras teste final,54
+MAE teste,9.506933862433929
+RMSE teste,12.652219804115683
+R2 teste,0.0987683003168589
+MAE baseline,15.072222222222225
+RMSE baseline,17.502978582494443
+R2 baseline,-0.7247530650104013
+Melhoria MAE (%),36.92413950467722
+Melhoria RMSE (%),27.713904553538292

@@ -1,0 +1,14 @@
+informacao,valor
+Total de eventos,68
+Eventos de treinamento,54
+Eventos de validação,14
+Amostras de treinamento,191505
+Amostras de validação,40834
+Timestep,5 minutos
+Horizonte da previsão,60 minutos
+MAE Random Forest,0.07714051240184759
+RMSE Random Forest,0.21171963867062404
+R2 Random Forest,0.999843237862148
+MAE Baseline,0.11193169491110334
+RMSE Baseline,0.34913956490772
+R2 Baseline,0.9995736983417189

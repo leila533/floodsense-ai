@@ -1,71 +1,101 @@
 /**
- * ╔══════════════════════════════════════════════════════════════════╗
- * ║         FloodSense AI — script.js                               ║
- * ║         Versão: 3.0  |  TCC — Sistemas de Informação           ║
- * ╠══════════════════════════════════════════════════════════════════╣
- * ║  ÍNDICE DO ARQUIVO:                                              ║
- * ║  01. Dados simulados (sensores IoT)                              ║
- * ║  02. Estado global da aplicação                                  ║
- * ║  03. Funções utilitárias                                         ║
- * ║  04. Autenticação (login/logout)                                 ║
- * ║  05. Simulação de dados IoT (fetchIoTData)                       ║
- * ║  06. Sistema de navegação (navigate / renderScreen)              ║
- * ║  07. Tela: Dashboard                                             ║
- * ║  08. Tela: Sensores                                              ║
- * ║  09. Tela: Mapa Interativo (Leaflet)                             ║
- * ║  10. Tela: IA & Previsões                                        ║
- * ║  11. Tela: Análise Gráfica                                       ║
- * ║  12. Tela: Alertas                                               ║
- * ║  13. Tela: Relatórios                                            ║
- * ║  14. Tela: Configurações                                         ║
- * ║  15. Sistema de Toast Notifications                              ║
- * ║  16. Utilitários de UI (clock, sidebar, badges)                  ║
- * ║  17. Inicialização da aplicação                                  ║
- * ╚══════════════════════════════════════════════════════════════════╝
+ * FloodSense AI — script.js
+ * Versão: 3.4 (frontend) | TCC — Sistemas de Informação
+ *
+ * ÍNDICE:
+ *  01. Dados simulados (sensores IoT)
+ *  02. Estado global da aplicação
+ *  03. Funções utilitárias
+ *  03b. Previsão da IA (Firebase /ai_predictions)
+ *  04. Autenticação (togglePassword / logout / bootApp)
+ *  05. Simulação de dados IoT (fetchIoTData)
+ *  06. Sistema de navegação (navigate / renderScreen)
+ *  07. Tela: Dashboard
+ *  08. Tela: Sensores
+ *  09. Tela: Mapa Interativo (Leaflet)
+ *  10. Tela: IA & Previsões
+ *  11. Tela: Análise Gráfica
+ *  12. Tela: Alertas
+ *  13. Tela: Relatórios
+ *  14. Tela: Configurações
+ *  15. Toast Notifications
+ *  16. Utilitários de UI (clock, sidebar)
+ *  17. Inicialização
+ *
+ * CHANGELOG v3.6
+ *  - Botão "Enviar alerta" no Dashboard: grava um pedido em /pedidos_alerta/FS-001
+ *    (exige login). O alerta_telegram.py envia a mensagem ao celular.
+ *
+ * CHANGELOG v3.5
+ *  - Mapa base trocado para Esri World Street Map (visual de mapa de ruas, sem chave de API).
+ *
+ * CHANGELOG v3.4
+ *  - Login agora é feito no index.html (Firebase Authentication).
+ *    Removido handleLogin e as credenciais de demonstração.
+ *  - bootApp() marca state.loggedIn = true (antes feito pelo handleLogin).
+ *
+ * CHANGELOG v3.3 — ÚNICA FONTE DE VERDADE PARA O NÍVEL ATUAL DO FS-001
+ *  - Nível atual (cm): SOMENTE GET /sensors/FS-001.json → campo "level".
+ *    Lido por fetchCurrentRealSensor() e guardado em
+ *    state.realSensorReading. Todas as telas usam getCurrentRealLevel().
+ *  - current_level_cm de /ai_predictions não representa mais o nível atual
+ *    (continua sendo lido no payload apenas como informação/debug).
+ *  - Sem fallback para histórico nem para valor simulado: se
+ *    /sensors/FS-001.json estiver indisponível, o FS-001 fica OFFLINE e a
+ *    interface mostra "Sem leitura".
+ *  - Previsão: /ai_predictions/FS-001.json (inalterado).
+ *  - Histórico/gráfico da IA: /sensor_history_treinamento/FS-001.json
+ *    (inalterado).
+ *
+ * CHANGELOG v3.2
+ *  - generated_at (UTC) é convertido para America/Sao_Paulo apenas na
+ *    exibição; o timestamp original é usado para calcular a idade da previsão.
+ *  - Tela de IA mostra os dados atuais do modelo V4 Progressivo publicados
+ *    pelo Python (algoritmo, modo, lags, versão, MAE de teste). Campos
+ *    ausentes aparecem como "—". Nenhum valor é inventado.
+ *  - Status vem do backend (normal / warning / critical).
  */
 
 /* ═══════════════════════════════════════════════════════════════════
    01. DADOS SIMULADOS — BASE DE SENSORES IoT
-   Em produção, esses dados viriam da API do backend.
-   Cada objeto representa um sensor ESP32 instalado em campo.
 ═══════════════════════════════════════════════════════════════════ */
 
-/**
- * DATASET: 12 sensores IoT simulados
- * Coordenadas reais de São Paulo para exibição no Leaflet.
- *
- * ─── GUIA DE INTEGRAÇÃO COM ESP32/ARDUINO ───────────────────────
- * Quando o hardware estiver instalado, substitua este array por
- * uma chamada à sua API:
- *
- *   const SENSORS = await FloodSense.fetchIoTData();
- *
- * Seu endpoint deve retornar JSON com a mesma estrutura abaixo.
- * Veja a função fetchIoTData() mais adiante (seção 05).
- * ─────────────────────────────────────────────────────────────────
- */
-/**
- * ─── PROTÓTIPO — SENSOR REAL (FS-001) ───────────────────────────
- * Cole aqui a URL do seu Realtime Database (sem "https://" e sem
- * barra final), a mesma que você configurou em floodsense_sensor.ino.
- * Ex: "floodsense-ai-tcc-default-rtdb.firebaseio.com"
- *
- * Deixe como '' pra rodar 100% simulado (sem hardware conectado).
- * ──────────────────────────────────────────────────────────────── */
+/* Realtime Database (sem "https://" e sem barra final).
+   Deixe como '' para rodar 100% simulado. */
 const FIREBASE_HOST = 'floodsense-ai-7a6b9-default-rtdb.firebaseio.com';
 const FIREBASE_SENSOR_ID = 'FS-001';
+
+/* LEGADO: não é mais usado como trava. A previsão é exibida quando o
+   Firebase publica um valor numérico em predicted_level_60min_cm com
+   real_sensor_compatible === true (unidade cm). */
+const CALIBRATION_VALIDATED = false;
+const VALID_STATUS = ['normal', 'warning', 'critical'];
+
+/* Intervalo de atualização automática da previsão da IA (ms) */
+const AI_POLL_MS = 10000;
+/* Intervalo de atualização do sensor real FS-001 (ms) */
+const SENSOR_POLL_MS = 3000;
+/* Previsão com mais de N minutos é marcada como desatualizada */
+const AI_STALE_MIN = 30;
+
+/* Posição FIXA do sensor físico FS-001 (faculdade):
+   R. da Paz, 797 - Chácara Santo Antônio, São Paulo - SP, 04713-000.
+   Coordenadas estáticas — NÃO usa geolocalização/GPS do navegador. */
+const FS001_COORDS = { lat: -23.62986, lng: -46.70126 };
+/* Zoom inicial do mapa (cobre a cidade de São Paulo e todos os marcadores) */
+const MAP_INITIAL_ZOOM = 11;
 
 const SENSORS_BASE = [
   {
     id: 'FS-001',
     name: 'Sensor Centro',
-    location: 'Praça da Sé, Centro',
-    bairro: 'Centro',
-    lat: -23.5505,
-    lng: -46.6333,
-    level: 115,    // cm — nível da água
-    temp: 23.4,    // °C
-    humidity: 88,  // %
+    location: 'R. da Paz, 797 - Chácara Santo Antônio',
+    bairro: 'Chácara Santo Antônio',
+    lat: FS001_COORDS.lat,
+    lng: FS001_COORDS.lng,
+    level: 115,
+    temp: 23.4,
+    humidity: 88,
     status: 'critical',
     lastRead: '09:14:32'
   },
@@ -214,6 +244,12 @@ const SENSORS_BASE = [
   }
 ];
 
+/* FS-001 sem leitura real: offline, sem nível (nenhum valor inventado) */
+const fs001Offline = s => ({
+  ...s, level: null, temp: null, humidity: null,
+  status: 'offline', source: 'offline', lastRead: 'SEM LEITURA'
+});
+
 /* Histórico simulado de 24h para gráficos */
 const HISTORY_24H = {
   labels: ['00h','01h','02h','03h','04h','05h','06h','07h','08h','09h','10h','11h',
@@ -226,16 +262,16 @@ const HISTORY_24H = {
 
 /* Alertas históricos */
 const ALERTS_DATA = [
-  { id: 1, type: 'critical', icon: '🚨', zone: 'Centro — Praça da Sé', sensor: 'FS-001',
-    msg: 'Nível atingiu 115cm. Risco iminente de inundação. Defesa Civil acionada.', time: '09:14', badge: 'CRÍTICO' },
+  { id: 1, type: 'critical', icon: '🚨', zone: 'Centro — Praça da Sé', sensor: 'DEMO',
+    msg: 'Cenário de demonstração: nível de 115cm. Não é leitura do ESP32.', time: '09:14', badge: 'CRÍTICO' },
   { id: 2, type: 'critical', icon: '🚨', zone: 'Zona Norte — Santana', sensor: 'FS-002',
     msg: 'Nível em 92cm, ultrapassando limite crítico (90cm). Evacuação preventiva recomendada.', time: '09:12', badge: 'CRÍTICO' },
   { id: 3, type: 'warning', icon: '⚠️', zone: 'Zona Sul — Santo Amaro', sensor: 'FS-003',
     msg: 'Nível em 85cm. Tendência crescente. Monitoramento intensificado.', time: '09:10', badge: 'ATENÇÃO' },
   { id: 4, type: 'warning', icon: '⚠️', zone: 'Marginal Tietê — KM12', sensor: 'FS-006',
-    msg: 'Umidade do solo em 93%. Alta probabilidade de saturação hídrica nas próximas 2h.', time: '09:05', badge: 'ATENÇÃO' },
+    msg: 'Umidade do solo em 93%. Possível saturação hídrica (dado simulado).', time: '09:05', badge: 'ATENÇÃO' },
   { id: 5, type: 'warning', icon: '⚠️', zone: 'Mandaqui', sensor: 'FS-010',
-    msg: 'Nível em 61cm com previsão de chuvas fortes. Equipes em standby.', time: '08:55', badge: 'ATENÇÃO' },
+    msg: 'Nível em 61cm. Equipes em standby.', time: '08:55', badge: 'ATENÇÃO' },
   { id: 6, type: 'info', icon: '✅', zone: 'Jabaquara', sensor: 'FS-008',
     msg: 'Situação normalizada. Nível caiu para 33cm após recuo das chuvas.', time: '08:30', badge: 'NORMAL' },
   { id: 7, type: 'info', icon: '✅', zone: 'Pinheiros', sensor: 'FS-007',
@@ -246,7 +282,6 @@ const ALERTS_DATA = [
 
 /* ═══════════════════════════════════════════════════════════════════
    02. ESTADO GLOBAL DA APLICAÇÃO
-   Objeto central que controla toda a lógica do sistema.
 ═══════════════════════════════════════════════════════════════════ */
 const FloodSense = {
 
@@ -254,13 +289,23 @@ const FloodSense = {
   state: {
     loggedIn:    false,
     currentScreen: 'dashboard',
-    sensors:     JSON.parse(JSON.stringify(SENSORS_BASE)), // cópia profunda
-    alerts:      ALERTS_DATA,
+    /* FS-001 começa SEM LEITURA (offline) até /sensors/FS-001.json responder.
+       Os demais sensores são simulados. */
+    sensors:     JSON.parse(JSON.stringify(SENSORS_BASE)).map(s => s.id === FIREBASE_SENSOR_ID ? fs001Offline(s) : { ...s, source: 'simulated' }),
+    alerts:      ALERTS_DATA.map(a => ({ ...a, zone: a.zone + ' · SIMULADO' })),
     sidebarOpen: false,
-    iotInterval: null,    // referência do setInterval do IoT
-    clockInterval: null,  // referência do relógio
-    chartInstances: {},   // Chart.js — manter refs para destruição correta
-    leafletMap: null,     // instância do mapa Leaflet
+    iotInterval: null,
+    clockInterval: null,
+    chartInstances: {},
+    leafletMap: null,
+    leafletMarkers: [],
+    aiInterval: null,
+    predictionInterval: null, // polling de /ai_predictions (global, todas as telas)
+    aiPrediction: null,       // previsão normalizada (inicializada logo após este objeto)
+    aiPredictionFetchedAt: null,
+    lastAIModel: null,        // último nome de modelo recebido do Firebase (só exibição)
+    realSensor: null,         // estado do painel do FS-001 (Firebase)
+    realSensorReading: null,  // ÚNICA fonte do nível atual do FS-001: { id, level, distance, status, timestamp, source:"real" } ou null
     searchQuery: '',
     filterStatus: 'all',
     sortField: 'id',
@@ -306,6 +351,108 @@ const FloodSense = {
     return `${val}${unit}`;
   },
 
+  /** Valor com unidade; '—' quando não medido */
+  fmtVal(v, unit = '') { return (v === null || v === undefined || v === '') ? '—' : `${v}${unit}`; },
+
+  /** Etiqueta de origem do dado: REAL / SIMULADO / SEM LEITURA */
+  getSourceTag(s) {
+    if (s.source === 'real')    return '<span class="data-tag data-tag-real">REAL</span>';
+    if (s.source === 'offline') return '<span class="data-tag data-tag-sim">SEM LEITURA</span>';
+    return '<span class="data-tag data-tag-sim">SIMULADO</span>';
+  },
+
+  /** Apresentação: instante (ms) → dd/mm/aaaa hh:mm em America/Sao_Paulo.
+      Não altera o timestamp original (usado só para exibir). */
+  fmtSaoPaulo(ms) {
+    const p = {};
+    new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(new Date(ms)).forEach(x => { p[x.type] = x.value; });
+    return `${p.day}/${p.month}/${p.year} ${p.hour === '24' ? '00' : p.hour}:${p.minute}`;
+  },
+
+  /** Algoritmo amigável (ET_... / ExtraTreesRegressor → ExtraTrees) */
+  friendlyAlgo(p) {
+    const a = (p && p.algorithm) || '';
+    if (/^ET/i.test(a) || /extra/i.test(a)) return 'ExtraTrees';
+    return (p && p.model) || a || null;
+  },
+
+  /** "ExtraTrees · LAG_15" ou null */
+  aiModelLabel(p) {
+    const s = [this.friendlyAlgo(p), p && p.mode].filter(Boolean).join(' · ');
+    return s || null;
+  },
+
+  /** Lucide tolerante a falha de CDN */
+  icons() { if (window.lucide) window.lucide.createIcons(); },
+
+  /** Converte para número finito ou null (nunca NaN/undefined) */
+  parseNum(v) {
+    if (v === null || v === undefined || v === '' || typeof v === 'boolean' || typeof v === 'object') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  },
+
+  /** Escapa texto vindo de fora (Firebase) antes de usar em innerHTML */
+  esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  },
+
+  /** "72.4 cm" ou "—" quando não há número válido */
+  fmtCm(v, d = 1) {
+    const n = this.parseNum(v);
+    return n === null ? '—' : `${n.toFixed(d)} cm`;
+  },
+
+  /** Nível atual do FS-001 formatado: "72.4 cm" ou "Sem leitura" (FS-001 offline) */
+  fmtCurrentLevel() {
+    const n = this.getCurrentRealLevel();
+    return n === null ? 'Sem leitura' : `${n.toFixed(1)} cm`;
+  },
+
+  /** Define textContent (e opcionalmente a cor) de um elemento, se ele existir na tela atual */
+  setText(id, text, color) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    el.textContent = text;
+    if (color !== undefined) el.style.color = color;
+    return el;
+  },
+
+  /** Painel do sensor físico FS-001 (dados vindos do Firebase) */
+  setRealPanel(d) {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const badge = document.getElementById('real-sensor-status-badge');
+    this.state.realSensor = { ok: !!d };
+    if (!d) {
+      set('real-level', '--');
+      set('real-distance', '--');
+      set('real-status', 'OFFLINE');
+      set('real-connection-text', 'FS-001 offline · aguardando ESP32/Firebase');
+      set('real-updated', 'sem leitura no momento');
+      if (badge) { badge.textContent = '○ SEM LEITURA'; badge.className = 'real-status-badge'; }
+      return;
+    }
+    set('real-level', d.level.toFixed(1));
+    set('real-distance', d.distance === null ? '--' : d.distance.toFixed(1));   // nunca derivado de 100 - nível
+    set('real-status', d.status === 'critical' ? 'CRÍTICO' : d.status === 'warning' ? 'ATENÇÃO' : 'NORMAL');
+    let when = 'consultado às ' + new Date().toLocaleTimeString('pt-BR');
+    const ts = Number(d.timestamp);
+    if (Number.isFinite(ts) && ts > 1e9) {
+      const age = Math.round((Date.now() - (ts > 1e12 ? ts : ts * 1000)) / 60000);
+      when = age <= 0 ? 'atualizado agora' : `leitura há ${age} min`;
+    }
+    set('real-updated', when);
+    set('real-connection-text', 'conectado ao Firebase');
+    if (badge) {
+      badge.textContent = '● ONLINE · FS-001';
+      badge.className = 'real-status-badge ' + (d.status === 'critical' ? 'critical' : d.status === 'warning' ? 'warning' : 'online');
+    }
+  },
+
   /** Destrói uma instância de Chart.js pelo ID do canvas */
   destroyChart(id) {
     if (this.state.chartInstances[id]) {
@@ -318,13 +465,13 @@ const FloodSense = {
   makeChart(canvasId, config) {
     this.destroyChart(canvasId);
     const ctx = document.getElementById(canvasId);
-    if (!ctx) return null;
+    if (!ctx || typeof Chart === 'undefined') return null;
     const chart = new Chart(ctx, config);
     this.state.chartInstances[canvasId] = chart;
     return chart;
   },
 
-  /** Configuração global padrão do Chart.js — tema dark */
+  /** Configuração global padrão do Chart.js — tema claro */
   chartDefaults() {
     return {
       responsive: true,
@@ -332,62 +479,409 @@ const FloodSense = {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#0f0f0f',
+          backgroundColor: '#0B1F3A',
           borderColor: '#1e293b',
           borderWidth: 1,
           titleColor: '#ffffff',
-          bodyColor: '#94a3b8',
+          bodyColor: '#cbd5e1',
           padding: 10,
           cornerRadius: 8,
         }
       },
       scales: {
         x: {
-          ticks: { color: '#475569', font: { size: 10, family: 'JetBrains Mono' } },
-          grid:  { color: 'rgba(30,41,59,0.5)' }
+          ticks: { color: '#64748b', font: { size: 10, family: 'JetBrains Mono' } },
+          grid:  { color: 'rgba(11,31,58,0.08)' }
         },
         y: {
-          ticks: { color: '#475569', font: { size: 10, family: 'JetBrains Mono' } },
-          grid:  { color: 'rgba(30,41,59,0.5)' }
+          ticks: { color: '#64748b', font: { size: 10, family: 'JetBrains Mono' } },
+          grid:  { color: 'rgba(11,31,58,0.08)' }
         }
       }
     };
   },
 
   /* ═════════════════════════════════════════════
-     04. AUTENTICAÇÃO
+     03b. PREVISÃO DA IA — Firebase /ai_predictions/FS-001
+
+     O Python publica em /ai_predictions/FS-001.json, entre outros:
+       current_level_cm, predicted_level_60min_cm, status
+       ("normal" | "warning" | "critical"), generated_at (UTC, ISO),
+       horizon_minutes, model (ex.: "ExtraTrees"), sensor_unit,
+       real_sensor_compatible, prediction_mode (STARTUP | LAG_5 |
+       LAG_15 | FULL), available_lags, model_algorithm, model_version,
+       selection_mae_test_cm.
+
+     REGRAS:
+       • Disponível só quando predicted_level_60min_cm é número finito E
+         real_sensor_compatible === true (sensor_unit, se existir, = "cm").
+       • Nó vazio / null / erro de rede → "Aguardando previsão da IA".
+       • Nenhum valor simulado é usado aqui.
+       • current_level_cm é lido só como informação/debug; o NÍVEL ATUAL
+         exibido na interface vem exclusivamente de /sensors/FS-001.json.
   ═════════════════════════════════════════════ */
 
-  /** Manipula submit do formulário de login */
-  handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('input-email').value.trim();
-    const pass  = document.getElementById('input-password').value;
-    const err   = document.getElementById('login-error');
-    const btn   = document.getElementById('btn-login');
-
-    // Credenciais válidas para demonstração
-    const VALID_EMAIL = 'admin@floodsense.ai';
-    const VALID_PASS  = 'floodsense2025';
-
-    // Loading state
-    btn.classList.add('loading');
-    btn.innerHTML = '<span>Verificando...</span>';
-
-    // Simula latência de rede (300ms)
-    setTimeout(() => {
-      if (email === VALID_EMAIL && pass === VALID_PASS) {
-        err.textContent = '';
-        this.state.loggedIn = true;
-        this.bootApp();
-      } else {
-        err.textContent = '⚠️ E-mail ou senha incorretos. Tente novamente.';
-        btn.classList.remove('loading');
-        btn.innerHTML = '<i data-lucide="log-in"></i><span>Entrar no Sistema</span>';
-        lucide.createIcons();
-      }
-    }, 300);
+  /** Estrutura padrão (sem previsão). reason: loading | empty | no_value | incompatible | error | ok */
+  emptyPrediction(reason = 'empty') {
+    return {
+      available: false, reason,
+      predicted: null, current: null, status: null,
+      generatedLabel: '—', ageMin: null, stale: false,
+      horizon: 60, model: null, unit: null,
+      compatible: false, message: '', historyRecords: null,
+      mode: null, algorithm: null, version: null, lags: [], mae: null
+    };
   },
+
+  /**
+   * Interpreta generated_at. O Python grava em UTC (com fuso explícito):
+   * a conversão para America/Sao_Paulo é SOMENTE visual; a idade é calculada
+   * com o instante original.
+   */
+  parsePredictionTime(value) {
+    const out = { label: '—', ageMin: null };
+    if (value === null || value === undefined || value === '') return out;
+
+    if (typeof value === 'string') {
+      const txt = value.trim();
+
+      // ISO com fuso explícito (Z ou ±hh:mm) → converte para São Paulo
+      if (/(Z|[+-]\d{2}:?\d{2})$/i.test(txt)) {
+        const t0 = Date.parse(txt);
+        if (Number.isFinite(t0)) {
+          out.label = this.fmtSaoPaulo(t0);
+          out.ageMin = Math.max(0, Math.round((Date.now() - t0) / 60000));
+          return out;
+        }
+      }
+
+      // ISO sem fuso: mostrado como veio (não é possível converter sem inventar o fuso)
+      const m = txt.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+      if (m) {
+        out.label = `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+        return out;
+      }
+    }
+
+    let ms = null;
+    const n = this.parseNum(value);
+    if (n !== null) ms = n > 1e12 ? n : (n > 1e9 ? n * 1000 : null);   // epoch em ms ou s
+    else { const t = Date.parse(String(value)); if (Number.isFinite(t)) ms = t; }
+    if (ms === null) return out;
+
+    out.label = this.fmtSaoPaulo(ms);
+    out.ageMin = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    return out;
+  },
+
+  /** Normaliza o JSON bruto do Firebase (aceita null, vazio, tipos errados) */
+  normalizePrediction(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return this.emptyPrediction('empty');
+
+    const p = this.emptyPrediction('no_value');
+    p.predicted = this.parseNum(raw.predicted_level_60min_cm);
+    p.current   = this.parseNum(raw.current_level_cm);   // informação/debug apenas — NÃO é o nível atual da interface
+    p.horizon   = this.parseNum(raw.horizon_minutes) ?? 60;
+    p.historyRecords = this.parseNum(raw.history_records);
+    p.model   = (typeof raw.model === 'string' && raw.model.trim()) ? raw.model.trim() : null;
+    p.unit    = (typeof raw.sensor_unit === 'string' && raw.sensor_unit.trim()) ? raw.sensor_unit.trim().toLowerCase() : null;
+    p.message = (typeof raw.message === 'string') ? raw.message.trim() : '';
+    p.compatible = raw.real_sensor_compatible === true && (p.unit === null || p.unit === 'cm');
+
+    // Campos do modelo V4 Progressivo (ausentes → null / vazio, nunca inventados)
+    const txt = v => (typeof v === 'string' && v.trim()) ? v.trim() : null;
+    p.mode      = txt(raw.prediction_mode) || txt(raw.model_mode);
+    p.algorithm = txt(raw.model_algorithm) || txt(raw.algorithm);
+    p.version   = txt(raw.model_version);
+    p.lags      = Array.isArray(raw.available_lags) ? raw.available_lags.map(String) : [];
+    p.mae       = this.parseNum(raw.selection_mae_test_cm);
+
+    // Status: respeita o enviado pelo backend (sem segunda regra)
+    const st = String(raw.status || '').toLowerCase();
+    p.status = VALID_STATUS.includes(st) ? st : null;
+
+    const t = this.parsePredictionTime(raw.generated_at);
+    p.generatedLabel = t.label;
+    p.ageMin = t.ageMin;
+    p.stale = t.ageMin !== null && t.ageMin > AI_STALE_MIN;
+
+    if (p.predicted === null) {
+      p.reason = 'no_value';
+    } else if (!p.compatible) {
+      p.reason = 'incompatible';
+    } else {
+      p.reason = 'ok';
+      p.available = true;
+    }
+    return p;
+  },
+
+  /** Texto "indisponível" conforme o motivo */
+  aiWaitingText(p) {
+    switch (p && p.reason) {
+      case 'loading':      return 'Consultando previsão da IA...';
+      case 'error':        return 'Não foi possível consultar a previsão no Firebase';
+      case 'incompatible': return 'Previsão recebida, mas não marcada como compatível com cm';
+      case 'no_value':     return 'Aguardando previsão da IA (sem valor numérico)';
+      default:             return 'Aguardando previsão da IA';
+    }
+  },
+
+  /** Cores/rótulos por status da previsão */
+  aiStatusMeta(status) {
+    const map = {
+      normal:   { label: 'NORMAL',  color: 'var(--green)',  kpi: 'green',  ic: 'ic-green',  val: 'col-green' },
+      warning:  { label: 'ATENÇÃO', color: 'var(--yellow)', kpi: 'yellow', ic: 'ic-yellow', val: 'col-yellow' },
+      critical: { label: 'CRÍTICO', color: 'var(--red)',    kpi: 'red',    ic: 'ic-red',    val: 'col-red' }
+    };
+    return map[status] || { label: '—', color: 'var(--text-muted)', kpi: 'blue', ic: 'ic-blue', val: 'col-blue' };
+  },
+
+  /** Sensor FS-001 com dado REAL (null se estiver offline / sem leitura) */
+  getRealSensor() {
+    return this.state.sensors.find(x => x.source === 'real') || null;
+  },
+
+  /**
+   * NÍVEL ATUAL DO FS-001 (cm) — ÚNICA função usada pela interface.
+   * Retorna SOMENTE state.realSensorReading.level (de /sensors/FS-001.json)
+   * ou null se não houver leitura válida. Sem fallback para IA, histórico
+   * ou valor simulado.
+   */
+  getCurrentRealLevel() {
+    const r = this.state.realSensorReading;
+    return (r && Number.isFinite(r.level)) ? r.level : null;
+  },
+
+  /** Resumo textual da previsão (Análise Gráfica / Relatórios) */
+  aiSummary() {
+    const p = this.state.aiPrediction || this.emptyPrediction('loading');
+    if (p.available) {
+      const meta = this.aiStatusMeta(p.status);
+      return {
+        ok: true, color: meta.color,
+        text: `Previsão IA +${p.horizon} min (FS-001): ${this.fmtCm(p.predicted)} · ${meta.label} · dado real do Firebase`,
+        short: this.fmtCm(p.predicted)
+      };
+    }
+    return { ok: false, color: 'var(--yellow)', text: this.aiWaitingText(p), short: 'aguardando previsão' };
+  },
+
+  /** Nome do modelo recebido do Firebase (ou o último conhecido); null se nunca recebido */
+  getAIModelName() {
+    const p = this.state.aiPrediction;
+    if (p && p.model) this.state.lastAIModel = p.model;
+    return this.state.lastAIModel || null;
+  },
+
+  /** Status visual da IA, baseado no estado REAL da previsão */
+  aiStatusText(p) {
+    p = p || this.state.aiPrediction || this.emptyPrediction('loading');
+    if (p.available) return `IA ONLINE · +${p.horizon} MIN`;
+    if (p.reason === 'error') return 'IA · SEM CONEXÃO';
+    return 'IA AGUARDANDO PREVISÃO';
+  },
+
+  aiStatusColor(p) {
+    p = p || this.state.aiPrediction || this.emptyPrediction('loading');
+    if (p.available) return 'var(--green)';
+    if (p.reason === 'error') return 'var(--red)';
+    return 'var(--yellow)';
+  },
+
+  /** Rodapé da barra lateral: modelo, estado e hora da última previsão (ids no index.html) */
+  updateSidebarAIStatus() {
+    const st = document.getElementById('sb-ai-status');
+    if (!st) return;
+    const p = this.state.aiPrediction || this.emptyPrediction('loading');
+    st.textContent = p.available ? 'ONLINE' : (p.reason === 'error' ? 'SEM CONEXÃO' : 'AGUARDANDO');
+    st.style.color = this.aiStatusColor(p);
+    const m = document.getElementById('sb-ai-model');
+    if (m) m.textContent = (p.available && this.aiModelLabel(p)) || 'V4 Progressivo';
+    const u = document.getElementById('sb-upd');
+    if (u) u.textContent = p.available ? p.generatedLabel.slice(-5) : 'aguardando';
+  },
+
+  /** Busca /ai_predictions/FS-001.json, normaliza e atualiza a UI. Nunca lança erro. */
+  async fetchAIPrediction() {
+    if (!FIREBASE_HOST || !FIREBASE_SENSOR_ID) {
+      this.state.aiPrediction = this.emptyPrediction('empty');
+    } else {
+      try {
+        const url = `https://${FIREBASE_HOST}/ai_predictions/${FIREBASE_SENSOR_ID}.json`;
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`IA HTTP ${response.status}`);
+        const raw = await response.json();          // pode ser null (nó inexistente/vazio)
+        this.state.aiPrediction = this.normalizePrediction(raw);
+      } catch (error) {
+        console.warn('[FloodSense] Erro ao consultar /ai_predictions:', error);
+        this.state.aiPrediction = this.emptyPrediction('error');
+      }
+    }
+    this.state.aiPredictionFetchedAt = Date.now();
+    if (this.state.loggedIn) this.applyAIPredictionToUI();
+  },
+
+  /** Inicia o polling automático da previsão (sem recarregar a página) */
+  startAIPredictionPolling() {
+    clearInterval(this.state.predictionInterval);
+    this.fetchAIPrediction();
+    this.state.predictionInterval = setInterval(() => this.fetchAIPrediction(), AI_POLL_MS);
+  },
+
+  /** Propaga a previsão para a tela que estiver aberta */
+  applyAIPredictionToUI() {
+    this.updateSidebarAIStatus();
+    if (this.state.currentScreen === 'dashboard') {
+      this.updateDashboardKPIs();
+      this.updateDashboardAICard();
+    }
+    if (this.state.currentScreen === 'ai') this.updateAIScreen();
+  },
+
+  /** Card "IA · Previsão FS-001" do Dashboard */
+  updateDashboardAICard() {
+    if (!document.getElementById('dash-ai-card')) return;
+    const p = this.state.aiPrediction || this.emptyPrediction('loading');
+    const hasCur = this.getCurrentRealLevel() !== null;
+    this.setText('dash-ai-current', this.fmtCurrentLevel(), hasCur ? 'var(--blue)' : 'var(--text-muted)');
+
+    if (p.available) {
+      const meta = this.aiStatusMeta(p.status);
+      this.setText('dash-ai-pred', this.fmtCm(p.predicted), meta.color);
+      this.setText('dash-ai-status', meta.label, meta.color);
+      this.setText('dash-ai-time', p.generatedLabel, 'var(--text-secondary)');
+      this.setText('dash-ai-note', p.stale ? 'desatualizada' : `atualização automática · ${AI_POLL_MS / 1000}s`);
+      this.setText('dash-ai-msg',
+        p.stale
+          ? `Previsão desatualizada (gerada há ${p.ageMin} min). Aguardando nova previsão da IA.`
+          : `Previsão de +${p.horizon} min publicada${this.aiModelLabel(p) ? ' · ' + this.aiModelLabel(p) : ''} · valor real do Firebase.`,
+        p.stale ? 'var(--yellow)' : 'var(--text-secondary)');
+    } else {
+      this.setText('dash-ai-pred', '—', 'var(--yellow)');
+      this.setText('dash-ai-status', '—', 'var(--text-muted)');
+      this.setText('dash-ai-time', '—', 'var(--text-muted)');
+      this.setText('dash-ai-note', p.reason === 'error' ? 'sem conexão' : 'sem previsão');
+      this.setText('dash-ai-msg', this.aiWaitingText(p), p.reason === 'error' ? 'var(--red)' : 'var(--yellow)');
+    }
+  },
+
+  /** Tela IA & Previsões: KPIs, caixa de estado, informações do modelo e pipeline */
+  updateAIScreen() {
+    if (!document.getElementById('ai-current-level')) return;
+    const p = this.state.aiPrediction || this.emptyPrediction('loading');
+    const cur = this.getCurrentRealLevel();
+    const box = document.getElementById('ai-status-box');
+    const paint = (bg, border) => { if (box) { box.style.background = bg; box.style.borderColor = border; } };
+
+    this.setText('ai-current-level', this.fmtCurrentLevel());
+    this.setText('ai-current-status', cur !== null ? 'Sensor real · /sensors/FS-001' : 'FS-001 offline');
+    this.setText('ai-info-model', this.aiModelLabel(p) || this.getAIModelName() || '—');
+    this.setText('ai-info-horizon', `${p.horizon} min`);
+    this.setText('ai-v4-algo', this.friendlyAlgo(p) || '—');
+    this.setText('ai-v4-mode', p.mode || '—');
+    this.setText('ai-v4-lags', p.lags && p.lags.length ? p.lags.join(', ') : '—');
+    this.setText('ai-v4-version', p.version || '—');
+    this.setText('ai-v4-mae', p.mae !== null && p.mae !== undefined ? this.fmtCm(p.mae, 2) : '—');
+
+    if (p.available) {
+      const meta = this.aiStatusMeta(p.status);
+      this.setText('ai-prediction-value', this.fmtCm(p.predicted), meta.color);
+      this.setText('ai-prediction-status', `Status previsto: ${meta.label}`);
+      this.setText('ai-prediction-time', `Gerada em ${p.generatedLabel}${p.stale ? ' · desatualizada' : ''}`);
+      this.setText('ai-compatibility', 'COMPATÍVEL', 'var(--green)');
+      this.setText('ai-compat-note', `Sensor em ${p.unit || 'cm'}`);
+      this.setText('ai-info-unit', p.unit || 'cm');
+      this.setText('ai-pipe-icon', '✓', 'var(--green)');
+      this.setText('ai-pipe-text', 'Modelo publicou previsão compatível com o sensor real (cm)');
+      if (p.stale) {
+        this.setText('ai-status-title', 'Previsão desatualizada', 'var(--yellow)');
+        this.setText('ai-status-message', `A última previsão foi gerada há ${p.ageMin} min. Aguardando nova previsão da IA.`);
+        paint('rgba(242,140,0,0.06)', 'rgba(242,140,0,0.22)');
+      } else {
+        this.setText('ai-status-title', 'Previsão disponível', 'var(--green)');
+        this.setText('ai-status-message', `Previsão de +${p.horizon} min lida do Firebase (/ai_predictions/${FIREBASE_SENSOR_ID}). O modelo marcou a previsão como compatível com o sensor físico em cm. Atualização automática a cada ${AI_POLL_MS / 1000}s.`);
+        paint('rgba(22,163,106,0.06)', 'rgba(22,163,106,0.22)');
+      }
+    } else {
+      const isError = p.reason === 'error';
+      const isIncompat = p.reason === 'incompatible';
+      this.setText('ai-prediction-value', '—', 'var(--yellow)');
+      this.setText('ai-prediction-status', this.aiWaitingText(p));
+      this.setText('ai-prediction-time', 'Aguardando previsão da IA');
+      this.setText('ai-compatibility', isIncompat ? 'INCOMPATÍVEL' : 'AGUARDANDO', isIncompat ? 'var(--red)' : 'var(--yellow)');
+      this.setText('ai-compat-note', isIncompat ? 'Verifique unidade/flag' : 'Sem previsão publicada');
+      this.setText('ai-info-unit', p.unit || '—');
+      this.setText('ai-pipe-icon', '●', 'var(--yellow)');
+      this.setText('ai-pipe-text', 'Aguardando o Python publicar a previsão em /ai_predictions');
+      this.setText('ai-status-title', isError ? 'Falha ao consultar Firebase' : 'Aguardando previsão da IA', isError ? 'var(--red)' : 'var(--yellow)');
+      this.setText('ai-status-message',
+        isError
+          ? 'Não foi possível ler /ai_predictions neste momento. Nenhum valor é exibido até a próxima consulta bem-sucedida.'
+          : (p.message || `Ainda não há valor numérico em predicted_level_60min_cm no Firebase (/ai_predictions/${FIREBASE_SENSOR_ID}). Nenhuma previsão é simulada.`));
+      if (isError) paint('rgba(220,69,69,0.06)', 'rgba(220,69,69,0.22)');
+      else paint('rgba(242,140,0,0.06)', 'rgba(242,140,0,0.22)');
+    }
+  },
+
+  /** Histórico bruto do Firebase → [{timestamp, level}] ordenado (descarta registros inválidos) */
+  parseHistory(historyData) {
+    const history = [];
+    if (!historyData || typeof historyData !== 'object') return history;
+    Object.entries(historyData).forEach(([key, value]) => {
+      if (!value || typeof value !== 'object') return;
+      const timestamp = this.parseNum(value.timestamp ?? key);
+      const level = this.parseNum(value.level);
+      if (timestamp === null || level === null) return;
+      history.push({ timestamp, level });
+    });
+    history.sort((a, b) => a.timestamp - b.timestamp);
+    return history;
+  },
+
+  /**
+   * LEITURA ATUAL OFICIAL do FS-001 (valores em cm, sem conversão).
+   * Única fonte: GET /sensors/FS-001.json → campo "level".
+   * Sem fallback (nem histórico, nem IA, nem simulado).
+   * Atualiza this.state.realSensorReading e devolve o objeto normalizado,
+   * ou null (e zera o estado) se o sensor estiver indisponível.
+   */
+  async fetchCurrentRealSensor() {
+    let reading = null;
+
+    if (FIREBASE_HOST) {
+      try {
+        const url = `https://${FIREBASE_HOST}/sensors/${FIREBASE_SENSOR_ID}.json`;
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const real = await response.json();                 // pode ser null
+        const level = (real && typeof real === 'object') ? this.parseNum(real.level) : null;
+        if (level === null) throw new Error('campo "level" ausente ou inválido');
+
+        const st = String(real.status || '').toLowerCase();
+        reading = {
+          id: FIREBASE_SENSOR_ID,
+          level: level,                                      // cm
+          distance: this.parseNum(real.distance),            // null se ausente
+          status: VALID_STATUS.includes(st) ? st : (level >= 90 ? 'critical' : level >= 60 ? 'warning' : 'normal'),
+          timestamp: real.timestamp,
+          source: 'real'
+        };
+      } catch (error) {
+        console.warn('[FloodSense] /sensors/' + FIREBASE_SENSOR_ID + ' indisponível:', error);
+        reading = null;
+      }
+    }
+
+    this.state.realSensorReading = reading;
+    return reading;
+  },
+
+  /* ═════════════════════════════════════════════
+     04. AUTENTICAÇÃO
+     O login é feito no index.html (Firebase Authentication).
+     Aqui ficam apenas: mostrar/ocultar senha, sair e iniciar o app.
+  ═════════════════════════════════════════════ */
 
   /** Mostra/oculta campo de senha */
   togglePassword() {
@@ -395,86 +889,135 @@ const FloodSense = {
     input.type = input.type === 'password' ? 'text' : 'password';
   },
 
-  /** Encerra sessão e volta ao login */
+  /** Encerra sessão de visualização e volta ao login (o signOut do Firebase é feito no index.html) */
   logout() {
     this.state.loggedIn = false;
     clearInterval(this.state.iotInterval);
     clearInterval(this.state.clockInterval);
-    // Destrói mapa Leaflet se existir
+    clearInterval(this.state.predictionInterval);
+    this.state.predictionInterval = null;
+    this.state.aiPrediction = this.emptyPrediction('loading');
+    this.state.realSensorReading = null;
+    this.state.sensors = this.state.sensors.map(s => s.id === FIREBASE_SENSOR_ID ? fs001Offline(s) : s);
     if (this.state.leafletMap) {
       this.state.leafletMap.remove();
       this.state.leafletMap = null;
     }
+    clearInterval(this.state.aiInterval);
+    Object.keys(this.state.chartInstances).forEach(id => this.destroyChart(id));
+    const loginBtn = document.getElementById('btn-login');
+    if (loginBtn) {
+      loginBtn.classList.remove('loading');
+      loginBtn.innerHTML = '<i data-lucide="log-in"></i><span>Entrar no Sistema</span>';
+    }
     document.getElementById('app-shell').hidden = true;
     document.getElementById('login-screen').style.display = 'flex';
+    this.icons();
     this.showToast('info', 'Sessão encerrada', 'Você saiu do sistema com segurança.');
   },
 
-  /** Inicia o aplicativo após login bem-sucedido */
+  /* ═════════════════════════════════════════════
+     ALERTA MANUAL PARA O CELULAR (Telegram)
+     O botão grava um pedido em /pedidos_alerta/FS-001 no Firebase.
+     O alerta_telegram.py (no computador) lê o pedido e envia a mensagem.
+     Só funciona com login ativo: a regra do banco exige auth.
+  ═════════════════════════════════════════════ */
+  pedirAlertaTelegram() {
+    const usuario = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!usuario) {
+      this.showToast('warning', 'Login necessário', 'Entre no painel para enviar alertas ao celular.');
+      return;
+    }
+
+    const agora = Date.now();
+    const COOLDOWN_PEDIDO_MS = 2 * 60 * 1000;
+    if (this._ultimoPedidoAlerta && agora - this._ultimoPedidoAlerta < COOLDOWN_PEDIDO_MS) {
+      const falta = Math.ceil((COOLDOWN_PEDIDO_MS - (agora - this._ultimoPedidoAlerta)) / 1000);
+      this.showToast('warning', 'Aguarde', `Você pode enviar outro alerta em ${falta} s.`);
+      return;
+    }
+
+    if (!confirm('Enviar alerta para o celular com o nível atual do FS-001?')) return;
+
+    try {
+      firebase.database()
+        .ref(`pedidos_alerta/${FIREBASE_SENSOR_ID}`)
+        .push({
+          criadoEm: firebase.database.ServerValue.TIMESTAMP,
+          uid: usuario.uid,
+          enviado: false
+        });
+      this._ultimoPedidoAlerta = agora;
+      this.showToast('success', 'Pedido enviado', 'O alerta chega ao celular em até 1 minuto.');
+    } catch (erro) {
+      console.error('[FloodSense] Falha ao gravar pedido de alerta:', erro);
+      this.showToast('critical', 'Falha ao enviar', 'Não foi possível registrar o pedido. Verifique a conexão.');
+    }
+  },
+
+  /** Inicia o aplicativo após login bem-sucedido (chamado por mostrarApp() no index.html) */
   bootApp() {
+    this.state.loggedIn = true;
+
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-shell').hidden = false;
-    lucide.createIcons();
+
+    FloodSense.icons();
 
     // Inicia relógio
     this.startClock();
 
-    // Inicia simulação IoT
+    // Inicia simulação IoT (+ leitura real do FS-001)
     this.startIoTSimulation();
+
+    // Inicia polling da previsão da IA (Firebase /ai_predictions)
+    this.startAIPredictionPolling();
+    this.updateSidebarAIStatus();
 
     // Renderiza tela inicial
     this.navigate('dashboard');
 
-    // Notificação de boas-vindas
+    // Notificações de boas-vindas
     setTimeout(() => {
-      this.showToast('critical', '🚨 Alerta Crítico', 'Sensor FS-001 (Centro): nível em 115cm!');
+      this.showToast(
+        'info',
+        'Origem dos dados',
+        'REAL: sensor FS-001 (ESP32 → Firebase). SIMULADOS: FS-002 a FS-012.'
+      );
     }, 1500);
+
     setTimeout(() => {
-      this.showToast('warning', '⚠️ IA detectou risco', 'Prob. de enchente: 92% nas próximas 6h.');
+      this.showToast(
+        'info',
+        'IA & Previsões',
+        'A previsão de +60 min do FS-001 é lida do Firebase e só aparece quando o Python publica um valor numérico real.'
+      );
     }, 3500);
+
   },
 
   /* ═════════════════════════════════════════════
      05. SIMULAÇÃO DE DADOS IoT
-     
-     ─── INTEGRAÇÃO FUTURA COM ESP32/ARDUINO ────
-     Para conectar sensores reais, faça o seguinte:
-     
-     1. Seu ESP32 deve enviar dados via HTTP POST:
-        POST http://seu-servidor.com/api/sensors
-        Body: { "sensorId": "FS-001", "level": 112.5,
-                "temp": 23.1, "humidity": 87 }
-     
-     2. backend (Node.js/FastAPI) salva no banco
-        (Firebase/MongoDB) e expõe um endpoint GET:
-        GET http://seu-servidor.com/api/sensors
-        → Retorna array de objetos com a mesma estrutura
-          de SENSORS_BASE acima.
-     
-     3. Descomente o bloco fetchFromAPI() abaixo e
-        remova a chamada de simulação local.
-     ─────────────────────────────────────────────
+
+     Os sensores FS-002 a FS-012 são simulados. O FS-001 vem do
+     Firebase (ESP32) e NUNCA é simulado: sem leitura → offline.
+     Para uma API própria, descomente o bloco indicado em
+     fetchIoTData() e troque a URL.
   ═════════════════════════════════════════════ */
 
   /**
    * Busca dados dos sensores.
-   * AGORA: simula variações de ±2cm a cada chamada.
-   * FUTURO: troca por chamada real à API.
+   * AGORA: simula variações de ±2cm a cada chamada (FS-002..012) e lê o FS-001 real.
    */
   async fetchIoTData() {
     /* ─────────────────────────────────────────────────────────────
        INTEGRAÇÃO REAL — DESCOMENTAR QUANDO A API ESTIVER PRONTA
-       
-       ⚠️ ATENÇÃO: Substitua 'http://localhost:3000' pela URL
-          real do seu servidor Node.js / FastAPI / Firebase.
-    ──────────────────────────────────────────────────────────────
 
     try {
       const response = await fetch('http://localhost:3000/api/sensors', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Adicione seu token de autenticação aqui:
           // 'Authorization': 'Bearer SEU_TOKEN_JWT'
         }
       });
@@ -482,22 +1025,21 @@ const FloodSense = {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const data = await response.json();
-      // data deve ser um array com a mesma estrutura de SENSORS_BASE
       return data;
 
     } catch (error) {
       console.error('[FloodSense] Erro ao buscar dados da API:', error);
-      // Em caso de falha, mantém os dados locais (fallback)
       return this.state.sensors;
     }
 
     ─────────────────────────────────────────────────────────────── */
 
-    /* ── MODO SIMULAÇÃO (base para os sensores sem hardware) ─────── */
+    /* ── MODO SIMULAÇÃO (sensores sem hardware: FS-002..FS-012) ─────── */
     const simulados = this.state.sensors.map(s => {
+      if (s.id === FIREBASE_SENSOR_ID) return s;   // FS-001 nunca é simulado
       if (s.status === 'offline') return s;
 
-      // Variação aleatória de ±2 cm (simula flutuação real do sensor)
+      // Variação aleatória de ±2 cm
       const delta = (Math.random() - 0.45) * 4;
       const newLevel = Math.max(5, Math.min(130, parseFloat((s.level + delta).toFixed(1))));
 
@@ -507,9 +1049,8 @@ const FloodSense = {
       else if (newLevel >= 60) newStatus = 'warning';
 
       // Temperatura: ±0.3°C
-      const newTemp = parseFloat((s.temp + (Math.random() - 0.5) * 0.6).toFixed(1));
+      const newTemp = s.temp == null ? null : parseFloat((s.temp + (Math.random() - 0.5) * 0.6).toFixed(1));
 
-      // Horário atual
       const now = new Date();
       const hh  = String(now.getHours()).padStart(2, '0');
       const mm  = String(now.getMinutes()).padStart(2, '0');
@@ -518,102 +1059,81 @@ const FloodSense = {
       return { ...s, level: newLevel, temp: newTemp, status: newStatus, lastRead: `${hh}:${mm}:${ss}` };
     });
 
-    /* ── PROTÓTIPO — SUBSTITUI O FS-001 PELO DADO REAL DO FIREBASE ──
-       Se FIREBASE_HOST estiver vazio, ou a requisição falhar (ESP32
-       desligado, sem rede, etc.), mantém o valor simulado do FS-001
-       como fallback — o dashboard nunca quebra por causa do hardware. */
-    if (!FIREBASE_HOST) return simulados;
+    /* ── FS-001: leitura oficial de /sensors/FS-001.json ──
+       Atualiza state.realSensorReading (única fonte do nível atual).
+       Sem leitura válida → FS-001 offline, sem nível. */
+    const reading = await this.fetchCurrentRealSensor();
+    this.setRealPanel(reading);
 
-    try {
-      const url = `https://${FIREBASE_HOST}/sensors/${FIREBASE_SENSOR_ID}.json`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const real = await response.json(); // { level, status } vindo do ESP32
-      if (!real || typeof real.level !== 'number') return simulados;
-
-      const now = new Date();
-      const hh  = String(now.getHours()).padStart(2, '0');
-      const mm  = String(now.getMinutes()).padStart(2, '0');
-      const ss  = String(now.getSeconds()).padStart(2, '0');
-
-      return simulados.map(s => {
-        if (s.id !== FIREBASE_SENSOR_ID) return s;
-        return {
-          ...s,
-          level: real.level,
-          status: real.status || s.status,
-          lastRead: `${hh}:${mm}:${ss}`
-        };
-      });
-    } catch (error) {
-      console.warn('[FloodSense] Sensor real indisponível, usando simulação para', FIREBASE_SENSOR_ID, error);
-      return simulados;
+    if (!reading) {
+      return simulados.map(s => s.id === FIREBASE_SENSOR_ID ? fs001Offline(s) : s);
     }
+
+    const now = new Date();
+    const hhmmss = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+
+    return simulados.map(s => s.id !== FIREBASE_SENSOR_ID ? s : {
+      ...s, level: reading.level, status: reading.status, source: 'real', temp: null, humidity: null, lastRead: hhmmss   // AJ-SR04M não mede temp./umidade
+    });
   },
 
-  /** Inicia o polling de dados IoT a cada 3 segundos */
+  /** Inicia o polling de dados IoT (SENSOR_POLL_MS = 3 s) */
   startIoTSimulation() {
+    clearInterval(this.state.iotInterval);
     const tick = async () => {
       const updated = await this.fetchIoTData();
+      if (!this.state.loggedIn) return;
       this.state.sensors = updated;
       this.onIoTUpdate();
     };
 
-    // Primeira chamada imediata
     tick();
-
-    // Polling a cada 3 segundos
-    // ⚠️ Em produção com API real, use WebSocket ou SSE em vez de polling.
-    this.state.iotInterval = setInterval(tick, 3000);
+    this.state.iotInterval = setInterval(tick, SENSOR_POLL_MS);
   },
 
   /**
    * Callback chamado após cada atualização dos dados IoT.
-   * Atualiza apenas os elementos da UI que mudaram (evita re-render completo).
+   * Atualiza apenas os elementos da UI que mudaram.
    */
   onIoTUpdate() {
     const s = this.state.sensors;
 
-    // Atualiza contadores na navbar
     const online = s.filter(x => x.status !== 'offline').length;
     const elem   = document.getElementById('online-count');
     if (elem) elem.textContent = online;
 
-    // Atualiza contagem no nav
     const navCount = document.getElementById('nav-count-sensors');
     if (navCount) navCount.textContent = s.length;
 
-    // Conta alertas críticos + warnings
     const alertCount = s.filter(x => x.status === 'critical' || x.status === 'warning').length;
     const navAlerts  = document.getElementById('nav-count-alerts');
     if (navAlerts) navAlerts.textContent = alertCount;
 
-    // Atualiza barra de alerta crítico
     const criticals = s.filter(x => x.status === 'critical');
     const critBar   = document.getElementById('critical-bar');
     const critText  = document.getElementById('critical-bar-text');
     if (critBar && critText) {
       if (criticals.length > 0) {
         critBar.classList.remove('hidden');
-        critText.textContent = `${criticals[0].name}: CRÍTICO ${criticals[0].level}cm`;
+        const c0 = criticals.find(x => x.source === 'real') || criticals[0];
+        critText.textContent = `${c0.name}: CRÍTICO ${c0.level}cm · ${c0.source === 'real' ? 'REAL' : 'SIMULADO'}`;
       } else {
         critBar.classList.add('hidden');
       }
     }
 
-    // Se estiver na tela do dashboard, atualiza KPIs e gráfico
     if (this.state.currentScreen === 'dashboard') {
       this.updateDashboardKPIs();
       this.updateDashboardChart();
+      this.updateDashboardAICard();
     }
 
-    // Se estiver na tela de sensores, re-renderiza a tabela
     if (this.state.currentScreen === 'sensors') {
       this.renderSensorTable();
     }
 
-    // Se estiver no mapa, atualiza marcadores
+    if (this.state.currentScreen === 'ai') this.updateAIScreen();
+
     if (this.state.currentScreen === 'map' && this.state.leafletMap) {
       this.updateMapMarkers();
     }
@@ -629,31 +1149,37 @@ const FloodSense = {
    *                               'ai' | 'charts' | 'alerts' | 'reports' | 'config'
    */
   navigate(screenName) {
-    // Encerra instâncias anteriores (mapa, etc.)
-    if (this.state.currentScreen === 'map' && screenName !== 'map') {
-      if (this.state.leafletMap) {
-        this.state.leafletMap.remove();
-        this.state.leafletMap = null;
-      }
+    clearInterval(this.state.aiInterval);
+    this.state.aiInterval = null;
+    const realPanel = document.getElementById('real-sensor-panel');
+    if (realPanel) realPanel.style.display = screenName === 'dashboard' ? '' : 'none';
+    if (this.state.leafletMap) {
+      this.state.leafletMap.remove();
+      this.state.leafletMap = null;
     }
 
     this.state.currentScreen = screenName;
 
-    // Atualiza botões da sidebar
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.screen === screenName);
     });
 
-    // Atualiza título e subtítulo da navbar
     const titles = {
-      dashboard: ['Dashboard Principal', 'São Paulo · SP · Brasil — Monitoramento em Tempo Real'],
-      sensors:   ['Sensores IoT', '12 sensores instalados · Leitura automática a cada 3s'],
-      map:       ['Mapa Interativo', 'Localização georreferenciada dos sensores — OpenStreetMap'],
-      ai:        ['IA & Previsões', 'Modelo LSTM + Random Forest · Acurácia 92%'],
-      charts:    ['Análise Gráfica', 'Histórico de 24h · Dados comparativos por região'],
-      alerts:    ['Central de Alertas', '3 alertas ativos · 2 críticos · 1 atenção'],
-      reports:   ['Relatórios', 'Exportação PDF e CSV · Histórico completo'],
-      config:    ['Configurações', 'Parâmetros do sistema, sensores e alertas']
+      dashboard: ['Dashboard Principal', 'São Paulo · SP · Brasil — Atualização automática'],
+
+      sensors:  ['Sensores IoT', '12 sensores cadastrados · Atualização automática'],
+
+      map:      ['Mapa Interativo', 'Localização georreferenciada dos sensores — OpenStreetMap'],
+
+      ai:       ['IA & Previsões', 'Previsão de +60 min do FS-001 via Firebase'],
+
+      charts:   ['Análise Gráfica', 'Histórico de níveis · Dados reais e dados simulados identificados'],
+
+      alerts:   ['Central de Alertas', 'Monitoramento de ocorrências · Sensores em atenção e situação crítica'],
+
+      reports:  ['Relatórios', 'Dados dos sensores · Histórico e informações do sistema'],
+
+      config:   ['Configurações', 'Parâmetros do sistema, sensores e alertas']
     };
 
     const [title, sub] = titles[screenName] || ['FloodSense AI', ''];
@@ -662,31 +1188,23 @@ const FloodSense = {
     if (titleEl) titleEl.textContent = title;
     if (subEl)   subEl.textContent   = sub;
 
-    // Renderiza o conteúdo da tela
     this.renderScreen(screenName);
 
-    // Fecha sidebar no mobile após navegação
     this.closeSidebar();
   },
 
-  /**
-   * Limpa o #app-root e renderiza a tela correspondente.
-   * Este é o "roteador" central do sistema.
-   */
+  /** Limpa o #app-root e renderiza a tela correspondente. */
   renderScreen(screenName) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
-    // Limpa conteúdo anterior e reinicia animação
     root.innerHTML = '';
     root.style.animation = 'none';
     root.offsetHeight; // reflow
     root.style.animation = '';
 
-    // Destrói charts anteriores
     Object.keys(this.state.chartInstances).forEach(id => this.destroyChart(id));
 
-    // Rota para a tela correspondente
     const screens = {
       dashboard: () => this.renderDashboard(),
       sensors:   () => this.renderSensors(),
@@ -707,158 +1225,298 @@ const FloodSense = {
       </div>`;
     }
 
-    // Re-renderiza ícones Lucide após injetar HTML
-    lucide.createIcons();
+    FloodSense.icons();
   },
 
   /* ═════════════════════════════════════════════
      07. TELA: DASHBOARD
-  ═════════════════════════════════════════════ */
+   ═════════════════════════════════════════════ */
+
   renderDashboard() {
     const root = document.getElementById('app-root');
+
     root.innerHTML = `
+
+      <!-- Pedido manual de alerta para o celular (Telegram) -->
+      <div class="content-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div class="content-card-title"><i data-lucide="bell-ring"></i> Alerta para o celular</div>
+          <div class="chart-meta">Envia no Telegram uma mensagem com o nível atual do FS-001.</div>
+        </div>
+        <button class="btn btn-primary" id="btn-alerta-telegram" onclick="FloodSense.pedirAlertaTelegram()">
+          <i data-lucide="send"></i> Enviar alerta
+        </button>
+      </div>
+
       <!-- KPIs -->
       <div class="kpi-grid" id="kpi-grid"></div>
 
+      <!-- IA · Previsão do FS-001 (dados reais do Firebase) -->
+      <div class="content-card" id="dash-ai-card" style="margin-bottom:12px">
+        <div class="content-card-header">
+          <span class="content-card-title">
+            <i data-lucide="brain"></i>
+            IA · Previsão +60 min — FS-001
+          </span>
+          <span class="chart-meta" id="dash-ai-note">consultando...</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+          ${[
+            ['Nível atual', 'dash-ai-current'],
+            ['Previsão +60 min', 'dash-ai-pred'],
+            ['Status previsto', 'dash-ai-status'],
+            ['Horário da previsão (São Paulo)', 'dash-ai-time']
+          ].map(([label, id]) => `
+            <div style="padding:12px;background:var(--bg-card-2);border:1px solid var(--border);border-radius:var(--radius-sm)">
+              <span style="display:block;font-size:10px;color:var(--text-muted)">${label}</span>
+              <strong id="${id}" style="display:block;margin-top:4px;font-size:18px;font-family:var(--text-mono)">—</strong>
+            </div>
+          `).join('')}
+        </div>
+        <p id="dash-ai-msg" style="font-size:11px;color:var(--yellow);margin-top:10px;line-height:1.6">Consultando previsão da IA...</p>
+      </div>
+
       <!-- Gráficos principais -->
       <div class="grid-2" style="margin-bottom:12px">
+
         <div class="chart-card" style="animation-delay:0.1s">
           <div class="chart-header">
             <span class="chart-title">
-              <i data-lucide="trending-up"></i> Nível da Água — Últimas 24h
+              <i data-lucide="trending-up"></i>
+              Nível da Água — 24h (simulado) + FS-001 real
             </span>
-            <span class="chart-meta" id="chart-update">ao vivo</span>
+            <span class="chart-meta" id="chart-update">atualização automática</span>
           </div>
+
           <div class="chart-wrap" style="height:190px">
             <canvas id="chart-line"></canvas>
           </div>
+
           <div class="legend-row">
-            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Centro</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#facc15"></div>Zona Norte</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>Média Geral</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Centro (simulado)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#F28C00"></div>Zona Norte (simulado)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#00B8D9"></div>Média (sensores ativos)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#16a36a"></div>FS-001 (real)</div>
           </div>
         </div>
+
         <div class="chart-card" style="animation-delay:0.15s">
           <div class="chart-header">
             <span class="chart-title">
-              <i data-lucide="bar-chart-3"></i> Alertas por Região
+              <i data-lucide="bar-chart-3"></i>
+              Alertas por Região · SIMULADO
             </span>
           </div>
           <div class="chart-wrap" style="height:190px">
             <canvas id="chart-bar"></canvas>
           </div>
         </div>
+
       </div>
 
       <!-- Linha inferior -->
       <div class="grid-3">
+
         <div class="chart-card" style="animation-delay:0.2s">
           <div class="chart-header">
-            <span class="chart-title"><i data-lucide="pie-chart"></i> Distribuição de Risco</span>
+            <span class="chart-title">
+              <i data-lucide="pie-chart"></i>
+              Distribuição de Risco
+            </span>
           </div>
           <div class="chart-wrap" style="height:160px">
             <canvas id="chart-pie"></canvas>
           </div>
           <div class="legend-row" style="justify-content:center;margin-top:10px">
-            <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Normal</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#facc15"></div>Atenção</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#16a36a"></div>Normal</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#F28C00"></div>Atenção</div>
             <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Crítico</div>
           </div>
         </div>
+
         <div class="chart-card" style="animation-delay:0.25s">
           <div class="chart-header">
-            <span class="chart-title"><i data-lucide="radio"></i> Sensores Online/Offline</span>
+            <span class="chart-title">
+              <i data-lucide="radio"></i>
+              Sensores Online/Offline
+            </span>
           </div>
           <div class="chart-wrap" style="height:160px">
             <canvas id="chart-online"></canvas>
           </div>
         </div>
+
         <div class="content-card" style="animation-delay:0.3s;margin-bottom:0">
           <div class="content-card-header">
-            <span class="content-card-title"><i data-lucide="bell"></i> Alertas Recentes</span>
+            <span class="content-card-title">
+              <i data-lucide="bell"></i>
+              Alertas Recentes
+            </span>
           </div>
-          ${this.state.alerts.slice(0,3).map(a => {
+
+          ${this.state.alerts.slice(0, 3).map(a => {
             const cls = a.type === 'critical' ? 'alert-critical' : a.type === 'warning' ? 'alert-warning' : 'alert-info';
-            return `<div class="alert-item ${cls}" style="padding:10px 12px;margin-bottom:6px">
-              <div style="font-size:16px">${a.icon}</div>
-              <div class="alert-content">
-                <div class="alert-title" style="font-size:12px">${a.zone}</div>
-                <div class="alert-description" style="font-size:10px">${a.msg.substring(0,70)}...</div>
+            return `
+              <div class="alert-item ${cls}" style="padding:10px 12px;margin-bottom:6px">
+                <div style="font-size:16px">${a.icon}</div>
+                <div class="alert-content">
+                  <div class="alert-title" style="font-size:12px">${a.zone}</div>
+                  <div class="alert-description" style="font-size:10px">${a.msg.substring(0, 70)}...</div>
+                </div>
+                <div class="alert-time">${a.time}</div>
               </div>
-              <div class="alert-time">${a.time}</div>
-            </div>`;
+            `;
           }).join('')}
         </div>
+
       </div>
+
     `;
 
     this.updateDashboardKPIs();
-    lucide.createIcons();
+
+    FloodSense.icons();
+
     this.initDashboardCharts();
+    this.updateDashboardAICard();
+
   },
 
   /** Calcula e injeta os 6 KPIs */
   updateDashboardKPIs() {
-    const s      = this.state.sensors;
+
+    const s = this.state.sensors || [];
+
     const online  = s.filter(x => x.status !== 'offline');
     const offline = s.filter(x => x.status === 'offline');
     const crits   = s.filter(x => x.status === 'critical');
     const warns   = s.filter(x => x.status === 'warning');
-    const avgLvl  = online.length ? (online.reduce((a, x) => a + x.level, 0) / online.length).toFixed(1) : 0;
-    const maxLvl  = Math.max(...online.map(x => x.level));
-    const floodProb = Math.min(99, Math.round(60 + crits.length * 10 + warns.length * 4));
+
+    const avgLvl = online.length
+      ? (online.reduce((total, x) => total + Number(x.level || 0), 0) / online.length).toFixed(1)
+      : '0.0';
+
+    const maxLvl = online.length
+      ? Math.max(...online.map(x => Number(x.level || 0))).toFixed(1)
+      : '0.0';
+
+    const uptime = s.length ? Math.round((online.length / s.length) * 100) : 0;
+
+    // Previsão da IA — SOMENTE dados reais do Firebase (/ai_predictions)
+    const aiPred = this.state.aiPrediction || this.emptyPrediction('loading');
+    const aiOk   = aiPred.available === true;
+    const aiMeta = this.aiStatusMeta(aiPred.status);
+    const aiCur  = this.getCurrentRealLevel();   // nível atual REAL (/sensors/FS-001)
 
     const kpis = [
+
+      /* 1 — Sensores Online */
       {
-        label: 'Sensores Online', value: online.length, sub: `${offline.length} offline`,
-        type: 'blue', icon: 'radio', iconCls: 'ic-blue', valCls: 'col-blue',
-        trend: `${Math.round(online.length / s.length * 100)}% uptime`, trendType: 'flat'
+        label: 'Sensores Online',
+        value: online.length,
+        sub: `${offline.length} offline`,
+        type: 'blue',
+        icon: 'radio',
+        iconCls: 'ic-blue',
+        valCls: 'col-blue',
+        trend: `${uptime}% uptime`,
+        trendType: 'flat'
       },
+
+      /* 2 — Nível Médio */
       {
-        label: 'Nível Médio H₂O', value: avgLvl + 'cm', sub: `Máx: ${maxLvl}cm`,
-        type: avgLvl >= 90 ? 'red' : avgLvl >= 60 ? 'yellow' : 'green',
-        icon: 'droplets', iconCls: avgLvl >= 90 ? 'ic-red' : avgLvl >= 60 ? 'ic-yellow' : 'ic-green',
-        valCls: avgLvl >= 90 ? 'col-red' : avgLvl >= 60 ? 'col-yellow' : 'col-green',
-        trend: avgLvl >= 60 ? '▲ Acima do normal' : '▼ Normal', trendType: avgLvl >= 60 ? 'up' : 'down'
+        label: 'Nível Médio H₂O',
+        value: `${avgLvl}cm`,
+        sub: `Máx: ${maxLvl}cm · real + simulados`,
+        type:    Number(avgLvl) >= 90 ? 'red'      : Number(avgLvl) >= 60 ? 'yellow'      : 'green',
+        icon: 'droplets',
+        iconCls: Number(avgLvl) >= 90 ? 'ic-red'   : Number(avgLvl) >= 60 ? 'ic-yellow'   : 'ic-green',
+        valCls:  Number(avgLvl) >= 90 ? 'col-red'  : Number(avgLvl) >= 60 ? 'col-yellow'  : 'col-green',
+        trend:   Number(avgLvl) >= 60 ? '▲ Acima do normal' : '▼ Normal',
+        trendType: Number(avgLvl) >= 60 ? 'up' : 'down'
       },
+
+      /* 3 — Previsão da IA (+60 min) — valor real do Firebase ou "AGUARDANDO" */
       {
-        label: 'Prob. Enchente (6h)', value: floodProb + '%', sub: 'Modelo LSTM+RF',
-        type: floodProb >= 70 ? 'red' : floodProb >= 50 ? 'yellow' : 'green',
-        icon: 'brain', iconCls: 'ic-purple', valCls: floodProb >= 70 ? 'col-red' : 'col-yellow',
-        trend: floodProb >= 70 ? '▲ Risco elevado' : '— Estável', trendType: floodProb >= 70 ? 'up' : 'flat'
+        label: 'Previsão IA +60 min',
+        value: aiOk ? `${aiPred.predicted.toFixed(1)}cm` : 'AGUARDANDO',
+        sub: aiOk ? `Atual: ${this.fmtCurrentLevel()} · ${aiPred.generatedLabel}` : this.aiWaitingText(aiPred),
+        type: aiOk ? aiMeta.kpi : 'yellow',
+        icon: 'brain',
+        iconCls: aiOk ? aiMeta.ic : 'ic-yellow',
+        valCls: aiOk ? aiMeta.val : 'col-yellow',
+        trend: aiOk ? `● ${aiMeta.label}${aiPred.stale ? ' · desatualizada' : ''}` : '● Sem previsão disponível',
+        trendType: aiOk && aiCur !== null && aiPred.predicted > aiCur ? 'up' : 'flat'
       },
+
+      /* 4 — Alertas Ativos */
       {
-        label: 'Alertas Ativos', value: crits.length + warns.length, sub: `${crits.length} críticos · ${warns.length} atenção`,
-        type: crits.length > 0 ? 'red' : warns.length > 0 ? 'yellow' : 'green',
-        icon: 'bell', iconCls: crits.length > 0 ? 'ic-red' : 'ic-yellow', valCls: crits.length > 0 ? 'col-red' : 'col-yellow',
-        trend: crits.length > 0 ? '▲ Ação imediata' : 'Monitorando', trendType: crits.length > 0 ? 'up' : 'flat'
+        label: 'Alertas Ativos',
+        value: crits.length + warns.length,
+        sub: `${crits.length} críticos · ${warns.length} atenção`,
+        type:    crits.length > 0 ? 'red'     : warns.length > 0 ? 'yellow'     : 'green',
+        icon: 'bell',
+        iconCls: crits.length > 0 ? 'ic-red'  : warns.length > 0 ? 'ic-yellow'  : 'ic-green',
+        valCls:  crits.length > 0 ? 'col-red' : warns.length > 0 ? 'col-yellow' : 'col-green',
+        trend:   crits.length > 0 ? '▲ Ação imediata' : warns.length > 0 ? '▲ Atenção' : '● Monitorando',
+        trendType: crits.length > 0 ? 'up' : 'flat'
       },
+
+      /* 5 — Áreas Monitoradas */
       {
-        label: 'Áreas Monitoradas', value: '8', sub: 'Zonas cobertas',
-        type: 'blue', icon: 'map-pin', iconCls: 'ic-blue', valCls: 'col-blue',
-        trend: 'SP · Grande SP', trendType: 'flat'
+        label: 'Áreas Monitoradas',
+        value: '8',
+        sub: 'Zonas cobertas',
+        type: 'blue',
+        icon: 'map-pin',
+        iconCls: 'ic-blue',
+        valCls: 'col-blue',
+        trend: 'SP · Grande SP',
+        trendType: 'flat'
       },
+
+      /* 6 — Status da IA */
       {
-        label: 'Status da IA', value: '92%', sub: 'Acurácia atual',
-        type: 'green', icon: 'cpu', iconCls: 'ic-green', valCls: 'col-green',
-        trend: '▲ +14% vs baseline', trendType: 'down'
+        label: 'Status da IA',
+        value: aiOk ? 'ATIVA' : (aiPred.reason === 'error' ? 'FALHA' : 'AGUARDANDO'),
+        sub: aiOk ? `${this.esc(this.aiModelLabel(aiPred) || 'Modelo')} · ${this.esc(aiPred.unit || 'cm')}` : this.aiWaitingText(aiPred),
+        type: aiOk ? 'green' : (aiPred.reason === 'error' ? 'red' : 'yellow'),
+        icon: 'cpu',
+        iconCls: aiOk ? 'ic-green' : (aiPred.reason === 'error' ? 'ic-red' : 'ic-yellow'),
+        valCls: aiOk ? 'col-green' : (aiPred.reason === 'error' ? 'col-red' : 'col-yellow'),
+        trend: aiOk ? '● Previsão publicada' : '● Sem previsão disponível',
+        trendType: 'flat'
       }
+
     ];
 
     const grid = document.getElementById('kpi-grid');
+
     if (!grid) return;
+
     grid.innerHTML = kpis.map((k, i) => `
+
       <div class="kpi-card kpi-${k.type}" style="animation-delay:${i * 0.05}s">
+
         <div class="kpi-header">
           <span class="kpi-label">${k.label}</span>
-          <div class="kpi-icon ${k.iconCls}"><i data-lucide="${k.icon}"></i></div>
+          <div class="kpi-icon ${k.iconCls}">
+            <i data-lucide="${k.icon}"></i>
+          </div>
         </div>
+
         <div class="kpi-value ${k.valCls}">${k.value}</div>
+
         <div class="kpi-sub">${k.sub}</div>
+
         <span class="kpi-trend trend-${k.trendType}">${k.trend}</span>
+
       </div>
+
     `).join('');
-    lucide.createIcons();
+
+    FloodSense.icons();
+
   },
 
   /** Inicializa os 4 gráficos do dashboard */
@@ -869,22 +1527,27 @@ const FloodSense = {
     this.makeChart('chart-line', {
       type: 'line',
       data: {
-        labels: HISTORY_24H.labels,
+        labels: [...HISTORY_24H.labels],
         datasets: [
           {
-            label: 'Centro', data: HISTORY_24H.centro,
+            label: 'Centro (simulado)', data: [...HISTORY_24H.centro],
             borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.06)',
             tension: 0.4, fill: true, borderWidth: 2, pointRadius: 0
           },
           {
-            label: 'Norte', data: HISTORY_24H.norte,
-            borderColor: '#facc15', backgroundColor: 'rgba(250,204,21,0.04)',
+            label: 'Norte', data: [...HISTORY_24H.norte],
+            borderColor: '#F28C00', backgroundColor: 'rgba(242,140,0,0.04)',
             tension: 0.4, fill: true, borderWidth: 1.5, pointRadius: 0
           },
           {
-            label: 'Média', data: HISTORY_24H.media,
-            borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.05)',
+            label: 'Média', data: [...HISTORY_24H.media],
+            borderColor: '#00B8D9', backgroundColor: 'rgba(0,184,217,0.05)',
             tension: 0.4, fill: true, borderWidth: 2, pointRadius: 0
+          },
+          {
+            label: 'FS-001 (real)', data: Array(24).fill(null),
+            borderColor: '#16a36a', backgroundColor: 'transparent',
+            tension: 0.3, fill: false, borderWidth: 2, borderDash: [5, 4], pointRadius: 3, spanGaps: false
           }
         ]
       },
@@ -905,7 +1568,7 @@ const FloodSense = {
         datasets: [{
           label: 'Alertas',
           data: [8, 6, 5, 3, 2, 4, 2, 1],
-          backgroundColor: ['#ef4444','#ef4444','#facc15','#facc15','#22c55e','#facc15','#22c55e','#22c55e'],
+          backgroundColor: ['#ef4444','#ef4444','#F28C00','#F28C00','#16a36a','#F28C00','#16a36a','#16a36a'],
           borderRadius: 4,
           borderSkipped: false
         }]
@@ -925,8 +1588,8 @@ const FloodSense = {
         labels: ['Normal', 'Atenção', 'Crítico'],
         datasets: [{
           data: [counts.normal, counts.warning, counts.critical],
-          backgroundColor: ['#22c55e', '#facc15', '#ef4444'],
-          borderColor: '#0f0f0f', borderWidth: 3, hoverOffset: 4
+          backgroundColor: ['#16a36a', '#F28C00', '#ef4444'],
+          borderColor: '#ffffff', borderWidth: 3, hoverOffset: 4
         }]
       },
       options: {
@@ -946,7 +1609,7 @@ const FloodSense = {
             this.state.sensors.filter(x => x.status !== 'offline').length,
             this.state.sensors.filter(x => x.status === 'offline').length
           ],
-          backgroundColor: ['rgba(34,197,94,0.7)', 'rgba(100,116,139,0.5)'],
+          backgroundColor: ['rgba(22,163,106,0.7)', 'rgba(100,116,139,0.5)'],
           borderRadius: 6, borderSkipped: false
         }]
       },
@@ -965,23 +1628,26 @@ const FloodSense = {
   updateDashboardChart() {
     const chart = this.state.chartInstances['chart-line'];
     if (!chart) return;
-    // Adiciona ponto atual no eixo X
-    const now = new Date();
-    const label = `${String(now.getHours()).padStart(2,'0')}h`;
-    if (chart.data.labels[chart.data.labels.length - 1] !== label) {
-      chart.data.labels.push(label);
-      chart.data.datasets[0].data.push(this.state.sensors[0].level);
-      chart.data.datasets[2].data.push(
-        parseFloat((this.state.sensors.filter(x=>x.status!=='offline')
-          .reduce((a,x)=>a+x.level,0) / 11).toFixed(1))
-      );
-      // Mantém janela de 24 pontos
-      if (chart.data.labels.length > 24) {
-        chart.data.labels.shift();
-        chart.data.datasets.forEach(ds => ds.data.shift());
-      }
-      chart.update('none');
+    const label = `${String(new Date().getHours()).padStart(2, '0')}h`;
+    if (chart.data.labels[chart.data.labels.length - 1] === label) return;
+
+    const active = this.state.sensors.filter(x => x.status !== 'offline');
+    const norte  = this.state.sensors.find(x => x.id === 'FS-002');
+    const real   = this.state.sensors.find(x => x.source === 'real');
+    const avg    = active.length
+      ? parseFloat((active.reduce((a, x) => a + Number(x.level || 0), 0) / active.length).toFixed(1))
+      : null;
+
+    chart.data.labels.push(label);
+    chart.data.datasets[0].data.push(null);
+    chart.data.datasets[1].data.push(norte && norte.status !== 'offline' ? norte.level : null);
+    chart.data.datasets[2].data.push(avg);
+    chart.data.datasets[3].data.push(real ? real.level : null);
+    if (chart.data.labels.length > 24) {
+      chart.data.labels.shift();
+      chart.data.datasets.forEach(ds => ds.data.shift());
     }
+    chart.update('none');
   },
 
   /* ═════════════════════════════════════════════
@@ -1031,7 +1697,7 @@ const FloodSense = {
         <div class="pagination" id="sensor-pagination"></div>
       </div>
     `;
-    lucide.createIcons();
+    FloodSense.icons();
     this.renderSensorTable();
   },
 
@@ -1039,7 +1705,6 @@ const FloodSense = {
   renderSensorTable() {
     let data = [...this.state.sensors];
 
-    // Filtro de texto
     if (this.state.searchQuery) {
       const q = this.state.searchQuery.toLowerCase();
       data = data.filter(s =>
@@ -1050,12 +1715,10 @@ const FloodSense = {
       );
     }
 
-    // Filtro de status
     if (this.state.filterStatus !== 'all') {
       data = data.filter(s => s.status === this.state.filterStatus);
     }
 
-    // Ordenação
     data.sort((a, b) => {
       let va = a[this.state.sortField], vb = b[this.state.sortField];
       if (typeof va === 'string') va = va.toLowerCase(), vb = vb.toLowerCase();
@@ -1064,41 +1727,37 @@ const FloodSense = {
       return 0;
     });
 
-    // Paginação
     const total   = data.length;
     const pages   = Math.ceil(total / this.state.rowsPerPage);
     const start   = (this.state.currentPage - 1) * this.state.rowsPerPage;
     const pageData = data.slice(start, start + this.state.rowsPerPage);
 
-    // Atualiza contagem
     const countEl = document.getElementById('sensor-count');
     if (countEl) countEl.textContent = `${total} sensor${total !== 1 ? 'es' : ''}`;
 
-    // Renderiza linhas
     const tbody = document.getElementById('sensor-tbody');
     if (!tbody) return;
     tbody.innerHTML = pageData.map(s => `
       <tr>
-        <td><span class="sensor-id">${s.id}</span></td>
+        <td><span class="sensor-id">${s.id}</span>${this.getSourceTag(s)}</td>
         <td><span class="sensor-name">${s.name}</span></td>
         <td style="color:var(--text-secondary)">${s.bairro}</td>
         <td>
           <span class="sensor-level ${this.getLevelClass(s.status)}">
-            ${s.status === 'offline' ? '—' : s.level + ' cm'}
+            ${s.status === 'offline' ? (s.id === FIREBASE_SENSOR_ID ? 'Sem leitura' : '—') : s.level + ' cm'}
           </span>
         </td>
-        <td style="font-family:var(--text-mono)">${s.status === 'offline' ? '—' : s.temp + '°C'}</td>
-        <td style="font-family:var(--text-mono)">${s.status === 'offline' ? '—' : s.humidity + '%'}</td>
+        <td style="font-family:var(--text-mono)">${s.status === 'offline' ? '—' : this.fmtVal(s.temp, '°C')}</td>
+        <td style="font-family:var(--text-mono)">${s.status === 'offline' ? '—' : this.fmtVal(s.humidity, '%')}</td>
         <td>${this.getStatusBadge(s.status)}</td>
         <td style="font-family:var(--text-mono);font-size:11px;color:var(--text-muted)">${s.lastRead}</td>
       </tr>
     `).join('');
 
-    // Paginação
     const pgEl = document.getElementById('sensor-pagination');
     if (!pgEl) return;
     pgEl.innerHTML = `
-      <span>${start + 1}–${Math.min(start + this.state.rowsPerPage, total)} de ${total}</span>
+      <span>${total === 0 ? 0 : start + 1}–${Math.min(start + this.state.rowsPerPage, total)} de ${total}</span>
       <div class="pagination-btns">
         <button class="pg-btn" onclick="FloodSense.goPage(${this.state.currentPage - 1})" ${this.state.currentPage <= 1 ? 'disabled' : ''}>‹ Ant.</button>
         ${Array.from({ length: pages }, (_, i) => `
@@ -1141,7 +1800,7 @@ const FloodSense = {
         <div class="map-full-header">
           <span class="content-card-title" style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px">
             <i data-lucide="map" style="width:15px;height:15px;color:var(--blue)"></i>
-            São Paulo — Rede de Sensores FloodSense AI
+            São Paulo — Sensores (FS-001 real · demais simulados)
           </span>
           <div style="display:flex;gap:6px">
             <span class="badge badge-green">● ${this.state.sensors.filter(x=>x.status==='normal').length} Normal</span>
@@ -1162,51 +1821,70 @@ const FloodSense = {
         </div>
       </div>
     `;
-    lucide.createIcons();
+    FloodSense.icons();
 
-    // Aguarda o DOM renderizar antes de iniciar o Leaflet
     setTimeout(() => this.initLeafletMap(), 100);
   },
 
-  /** Inicializa o mapa Leaflet com tiles escuros e marcadores */
+  /** Inicializa o mapa Leaflet com marcadores */
   initLeafletMap() {
+    if (!document.getElementById('leaflet-map') || this.state.currentScreen !== 'map') return;
     if (!window.L) {
       document.getElementById('leaflet-map').innerHTML =
         '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted)">Leaflet não carregado. Verifique sua conexão.</div>';
       return;
     }
 
-    // Cria mapa centralizado em SP
+    /* Evita inicializar o Leaflet duas vezes no mesmo container
+       (ex.: navegar para o mapa repetidamente em menos de 100 ms). */
+    const mapEl = document.getElementById('leaflet-map');
+    if (this.state.leafletMap) {
+      if (this.state.leafletMap.getContainer() === mapEl) {
+        this.state.leafletMap.invalidateSize();
+        return;
+      }
+      this.state.leafletMap.remove();
+      this.state.leafletMap = null;
+    }
+
     const map = L.map('leaflet-map', {
-      center: [-23.5505, -46.6333],
-      zoom: 11,
+      center: [FS001_COORDS.lat, FS001_COORDS.lng],   // região da faculdade (fixo)
+      zoom: MAP_INITIAL_ZOOM,
       zoomControl: true,
       attributionControl: true
     });
 
-    // Tiles escuros (CartoDB Dark Matter — compatível com tema do sistema)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© <a href="https://carto.com/">CARTO</a> | FloodSense AI TCC',
-      subdomains: 'abcd',
-      maxZoom: 18
+    // Mapa base: Esri World Street Map (visual de mapa de ruas, sem chave de API)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> — Fontes: Esri, HERE, Garmin, OpenStreetMap contributors',
+      maxZoom: 19
     }).addTo(map);
 
     this.state.leafletMap = map;
     this.state.leafletMarkers = [];
 
-    // Adiciona marcadores de cada sensor
+    /* Redimensionamento: recalcula o tamanho assim que o container estiver
+       visível e sempre que ele mudar de tamanho (troca de tela, sidebar, rotação). */
+    const refreshSize = () => { if (this.state.leafletMap === map) map.invalidateSize(); };
+    requestAnimationFrame(refreshSize);
+    setTimeout(refreshSize, 250);
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(refreshSize);
+      ro.observe(mapEl);
+      map.on('unload', () => ro.disconnect());
+    }
+
     this.state.sensors.forEach(s => {
       const color = s.status === 'critical' ? '#ef4444' :
-                    s.status === 'warning'  ? '#facc15' :
+                    s.status === 'warning'  ? '#F28C00' :
                     s.status === 'offline'  ? '#475569' : '#22c55e';
 
-      // Ícone HTML personalizado
       const icon = L.divIcon({
         className: '',
         html: `<div style="
           width:16px;height:16px;border-radius:50%;
           background:${color};
-          border:2px solid rgba(255,255,255,0.3);
+          border:2px solid rgba(255,255,255,0.6);
           box-shadow:0 0 10px ${color}55;
           ${s.status === 'critical' ? 'animation:pulse-ring 1.5s ease infinite' : ''};
         "></div>`,
@@ -1233,13 +1911,13 @@ const FloodSense = {
                         s.status === 'warning'  ? 'var(--yellow)' :
                         s.status === 'offline'  ? 'var(--text-muted)' : 'var(--green)';
     return `<div class="map-popup">
-      <div class="map-popup-title">${s.name}</div>
+      <div class="map-popup-title">${s.name} ${this.getSourceTag(s)}</div>
       <div class="map-popup-row"><span>📍 Local</span><span>${s.bairro}</span></div>
-      <div class="map-popup-row"><span>💧 Nível</span><span style="color:${statusColor}">${s.status==='offline'?'—':s.level+' cm'}</span></div>
-      <div class="map-popup-row"><span>🌡️ Temp.</span><span>${s.status==='offline'?'—':s.temp+'°C'}</span></div>
-      <div class="map-popup-row"><span>💦 Umidade</span><span>${s.status==='offline'?'—':s.humidity+'%'}</span></div>
+      <div class="map-popup-row"><span>💧 Nível</span><span style="color:${statusColor}">${s.status==='offline'?(s.id===FIREBASE_SENSOR_ID?'Sem leitura':'—'):s.level+' cm'}</span></div>
+      <div class="map-popup-row"><span>🌡️ Temp.</span><span>${s.status==='offline'?'—':this.fmtVal(s.temp,'°C')}</span></div>
+      <div class="map-popup-row"><span>💦 Umidade</span><span>${s.status==='offline'?'—':this.fmtVal(s.humidity,'%')}</span></div>
       <div class="map-popup-row"><span>🕐 Leitura</span><span>${s.lastRead}</span></div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e293b">
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e1eaee">
         ${this.getStatusBadge(s.status)}
       </div>
     </div>`;
@@ -1258,176 +1936,310 @@ const FloodSense = {
 
   /* ═════════════════════════════════════════════
      10. TELA: IA & PREVISÕES
+     Responsabilidades separadas (nenhum valor simulado):
+       • /sensors/FS-001.json                    → NÍVEL ATUAL REAL
+       • /ai_predictions/FS-001.json             → previsão +60 min
+       • /sensor_history_treinamento/FS-001.json → histórico real (gráfico)
   ═════════════════════════════════════════════ */
+
   renderAI() {
     const root = document.getElementById('app-root');
-    const criticals = this.state.sensors.filter(x => x.status === 'critical').length;
-    const floodProb = Math.min(99, 60 + criticals * 10 + this.state.sensors.filter(x=>x.status==='warning').length * 4);
+
+    if (!root) return;
+
+    clearInterval(this.state.aiInterval);
+    this.state.aiInterval = null;
+
+    const infoRow = (label, valueHtml, last = false) => `
+      <div style="display:flex;justify-content:space-between;gap:12px;${last ? '' : 'border-bottom:1px solid var(--border-3);padding-bottom:8px;'}">
+        <span style="color:var(--text-muted)">${label}</span>
+        ${valueHtml}
+      </div>`;
+
+    const pipeStep = (icon, color, text, iconId = '', textId = '') => `
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="color:${color}" ${iconId ? `id="${iconId}"` : ''}>${icon}</span>
+        <span ${textId ? `id="${textId}"` : ''}>${text}</span>
+      </div>`;
 
     root.innerHTML = `
-      <!-- KPIs da IA -->
+
+      <!-- IA & PREVISÕES — DADOS REAIS DO PROTÓTIPO -->
+
       <div class="kpi-grid" style="margin-bottom:12px">
-        ${[
-          { label:'Prob. Enchente (6h)', val: floodProb+'%', color:'col-red', icon:'activity', icls:'ic-red' },
-          { label:'Acurácia do Modelo', val: '92%', color:'col-green', icon:'cpu', icls:'ic-green' },
-          { label:'F1-Score', val: '0.891', color:'col-blue', icon:'target', icls:'ic-blue' },
-          { label:'Latência da IA', val: '1.4s', color:'col-blue', icon:'zap', icls:'ic-blue' }
-        ].map((k,i) => `
-          <div class="kpi-card kpi-blue" style="animation-delay:${i*0.05}s">
-            <div class="kpi-header"><span class="kpi-label">${k.label}</span><div class="kpi-icon ${k.icls}"><i data-lucide="${k.icon}"></i></div></div>
-            <div class="kpi-value ${k.color}">${k.val}</div>
+
+        <!-- NÍVEL ATUAL -->
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-header">
+            <span class="kpi-label">NÍVEL ATUAL — FS-001</span>
+            <div class="kpi-icon ic-blue"><i data-lucide="droplets"></i></div>
           </div>
-        `).join('')}
+          <div class="kpi-value col-blue" id="ai-current-level">—</div>
+          <div class="kpi-sub">Sensor real · cm</div>
+          <span class="kpi-trend trend-flat" id="ai-current-status">aguardando Firebase</span>
+        </div>
+
+        <!-- HISTÓRICO -->
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-header">
+            <span class="kpi-label">HISTÓRICO DISPONÍVEL</span>
+            <div class="kpi-icon ic-blue"><i data-lucide="database"></i></div>
+          </div>
+          <div class="kpi-value col-blue" id="ai-history-count">—</div>
+          <div class="kpi-sub">Leituras do FS-001</div>
+          <span class="kpi-trend trend-flat">Amostragem a cada 5 min</span>
+        </div>
+
+        <!-- PREVISÃO -->
+        <div class="kpi-card kpi-yellow">
+          <div class="kpi-header">
+            <span class="kpi-label">PREVISÃO — 60 MIN</span>
+            <div class="kpi-icon ic-yellow"><i data-lucide="brain"></i></div>
+          </div>
+          <div class="kpi-value col-yellow" id="ai-prediction-value">—</div>
+          <div class="kpi-sub" id="ai-prediction-status">Aguardando previsão da IA</div>
+          <span class="kpi-trend trend-flat" id="ai-prediction-time">Aguardando previsão da IA</span>
+        </div>
+
+        <!-- COMPATIBILIDADE -->
+        <div class="kpi-card kpi-yellow">
+          <div class="kpi-header">
+            <span class="kpi-label">COMPATIBILIDADE</span>
+            <div class="kpi-icon ic-yellow"><i data-lucide="shield-check"></i></div>
+          </div>
+          <div class="kpi-value col-yellow" id="ai-compatibility">AGUARDANDO</div>
+          <div class="kpi-sub">Modelo atual × sensor real</div>
+          <span class="kpi-trend trend-flat" id="ai-compat-note">Sem previsão publicada</span>
+        </div>
+
       </div>
+
+
+      <!-- GRÁFICO + ESTADO DA IA -->
 
       <div class="grid-2" style="margin-bottom:12px">
-        <!-- Gráfico: previsão vs real -->
+
+        <!-- HISTÓRICO REAL -->
         <div class="chart-card">
           <div class="chart-header">
-            <span class="chart-title"><i data-lucide="git-compare"></i> Previsão IA vs Valor Real</span>
-            <span class="chart-meta">Últimas 24h</span>
+            <span class="chart-title">
+              <i data-lucide="activity"></i>
+              Histórico real — FS-001 <span class="data-tag data-tag-real">REAL</span>
+            </span>
+            <span class="chart-meta" id="ai-chart-meta">Firebase · carregando...</span>
           </div>
-          <div class="chart-wrap" style="height:200px"><canvas id="chart-ai-pred"></canvas></div>
+
+          <div class="chart-wrap" style="height:240px">
+            <canvas id="chart-ai-pred"></canvas>
+          </div>
+
           <div class="legend-row">
-            <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>Valor Real</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#a855f7;border-radius:0"></div>Previsão IA (tracejado)</div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:#00B8D9"></div>
+              Nível real do ESP32
+            </div>
+            <div class="legend-item" style="color:var(--text-muted)">
+              Leituras de /sensor_history_treinamento · atualização automática
+            </div>
           </div>
         </div>
 
-        <!-- Comparativo de modelos -->
+
+        <!-- ESTADO DA IA -->
         <div class="content-card" style="margin-bottom:0">
+
           <div class="content-card-header">
-            <span class="content-card-title"><i data-lucide="bar-chart-2"></i> Comparação de Modelos</span>
+            <span class="content-card-title">
+              <i data-lucide="brain"></i>
+              Estado da Inteligência Artificial
+            </span>
           </div>
-          <div style="margin-bottom:16px">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">
-              Comparativo entre abordagens — mesma base de dados, 5 anos histórico.
+
+          <div id="ai-status-box" style="background:rgba(242,140,0,0.06);border:1px solid rgba(242,140,0,0.22);border-radius:var(--radius-md);padding:16px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <span style="width:10px;height:10px;border-radius:50%;background:var(--yellow);display:inline-block"></span>
+              <strong style="color:var(--yellow)" id="ai-status-title">Aguardando previsão da IA</strong>
             </div>
-            <div class="model-compare-row">
-              <span class="model-name">Naive Bayes</span>
-              <div class="model-bar-wrap"><div class="model-bar progress-fill" style="width:68%;background:var(--text-muted)"></div></div>
-              <span class="model-value" style="color:var(--text-muted)">68%</span>
-              <span class="model-improve">—</span>
-            </div>
-            <div class="model-compare-row">
-              <span class="model-name">IA Tradicional</span>
-              <div class="model-bar-wrap"><div class="model-bar progress-fill" style="width:78%;background:var(--orange)"></div></div>
-              <span class="model-value" style="color:var(--orange)">78%</span>
-              <span class="model-improve">+10%</span>
-            </div>
-            <div class="model-compare-row">
-              <span class="model-name">Random Forest</span>
-              <div class="model-bar-wrap"><div class="model-bar progress-fill" style="width:84%;background:var(--yellow)"></div></div>
-              <span class="model-value" style="color:var(--yellow)">84%</span>
-              <span class="model-improve">+16%</span>
-            </div>
-            <div class="model-compare-row">
-              <span class="model-name" style="color:var(--blue);font-weight:700">FloodSense AI</span>
-              <div class="model-bar-wrap"><div class="model-bar progress-fill" style="width:92%;background:var(--green)"></div></div>
-              <span class="model-value" style="color:var(--green)">92%</span>
-              <span class="model-improve" style="color:var(--green)">+24% ★</span>
-            </div>
+            <p id="ai-status-message" style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+              Consultando /ai_predictions/${FIREBASE_SENSOR_ID} no Firebase...
+            </p>
           </div>
-          <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:var(--radius-sm);padding:10px;font-size:11px;color:var(--text-secondary)">
-            <strong style="color:var(--green)">✓ Melhoria de 14 pontos percentuais</strong> sobre a IA tradicional (78%), 
-            representando uma redução significativa de falsos negativos em eventos de enchente.
+
+          <!-- INFORMAÇÕES DO MODELO -->
+          <div style="font-size:12px;display:flex;flex-direction:column;gap:10px">
+            ${infoRow('Sensor real', '<strong style="color:var(--text-secondary)">ESP32 + AJ-SR04M</strong>')}
+            ${infoRow('Unidade do sensor', '<strong style="color:var(--blue)">cm</strong>')}
+            ${infoRow('Modelo atual', '<strong style="color:var(--text-secondary)" id="ai-info-model">—</strong>')}
+            ${infoRow('Unidade da previsão', '<strong style="color:var(--yellow)" id="ai-info-unit">—</strong>')}
+            ${infoRow('Horizonte configurado', '<strong style="color:var(--text-secondary)" id="ai-info-horizon">60 min</strong>', true)}
           </div>
+
         </div>
+
       </div>
 
-      <!-- Gráfico de precisão histórica + parâmetros -->
+
+      <!-- MODELO V4 + PIPELINE -->
+
       <div class="grid-2">
-        <div class="chart-card" style="animation-delay:0.2s">
-          <div class="chart-header">
-            <span class="chart-title"><i data-lucide="trending-up"></i> Precisão Histórica do Modelo</span>
-          </div>
-          <div class="chart-wrap" style="height:180px"><canvas id="chart-ai-acc"></canvas></div>
-        </div>
-        <div class="content-card" style="margin-bottom:0;animation-delay:0.25s">
+
+        <!-- MODELO V4 PROGRESSIVO (dados reais publicados pelo Python) -->
+        <div class="content-card" style="margin-bottom:0">
+
           <div class="content-card-header">
-            <span class="content-card-title"><i data-lucide="cpu"></i> Parâmetros do Modelo</span>
+            <span class="content-card-title">
+              <i data-lucide="brain"></i>
+              FloodSense AI — V4 Progressivo
+            </span>
           </div>
-          <div style="display:flex;flex-direction:column;gap:10px;font-size:12px">
-            ${[
-              ['Arquitetura', 'LSTM + Random Forest (Ensemble)'],
-              ['Features de Entrada', '8 variáveis (nível, temp, umidade, chuva, hora, dia, sazonalidade, solo)'],
-              ['Dados de Treino', '5 anos · 260.000 registros históricos'],
-              ['Janela Temporal', '24 horas de histórico → previsão 6h'],
-              ['Taxa de Atualização', 'A cada 30 minutos (re-treinamento incremental)'],
-              ['Framework', 'Python · TensorFlow 2.14 · Scikit-Learn'],
-              ['Versão', 'v3.2.1 — Produção (09/2025)']
-            ].map(([k, v]) => `
-              <div style="display:flex;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--border-3)">
-                <span style="color:var(--text-muted);min-width:130px;flex-shrink:0">${k}</span>
-                <span style="color:var(--text-secondary)">${v}</span>
-              </div>
-            `).join('')}
+
+          <div style="font-size:12px;display:flex;flex-direction:column;gap:10px">
+            ${infoRow('Algoritmo', '<strong style="color:var(--text-secondary)" id="ai-v4-algo">—</strong>')}
+            ${infoRow('Modo', '<strong style="color:var(--blue)" id="ai-v4-mode">—</strong>')}
+            ${infoRow('Lags usados', '<strong style="color:var(--text-secondary)" id="ai-v4-lags">—</strong>')}
+            ${infoRow('Versão do modelo', '<strong style="color:var(--text-secondary)" id="ai-v4-version">—</strong>')}
+            ${infoRow('MAE de teste (modelo escolhido)', '<strong style="color:var(--text-secondary)" id="ai-v4-mae">—</strong>', true)}
           </div>
+
         </div>
+
+
+        <!-- PIPELINE -->
+        <div class="content-card" style="margin-bottom:0">
+
+          <div class="content-card-header">
+            <span class="content-card-title">
+              <i data-lucide="route"></i>
+              Pipeline da IA
+            </span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:9px;font-size:11px">
+            ${pipeStep('✓', 'var(--green)', 'ESP32 realiza a leitura do nível')}
+            ${pipeStep('✓', 'var(--green)', 'Firebase armazena o sensor e o histórico')}
+            ${pipeStep('✓', 'var(--green)', 'Python consulta o histórico em /sensor_history_treinamento')}
+            ${pipeStep('✓', 'var(--green)', 'Modelo V4 escolhe STARTUP, LAG_5, LAG_15 ou FULL conforme as leituras reais')}
+            ${pipeStep('●', 'var(--yellow)', 'Aguardando o Python publicar a previsão em /ai_predictions', 'ai-pipe-icon', 'ai-pipe-text')}
+          </div>
+
+        </div>
+
       </div>
+
     `;
-    lucide.createIcons();
+
+    FloodSense.icons();
+
     this.initAICharts();
+
+    this.loadAIData();
+
+    // Atualização automática
+    this.state.aiInterval = setInterval(() => {
+      if (this.state.currentScreen === 'ai') {
+        this.loadAIData();
+      }
+    }, AI_POLL_MS);
   },
 
+
+  /* ═════════════════════════════════════════════
+     CARREGAR DADOS REAIS DA IA
+     - Nível atual: this.state.realSensorReading (polling de 3 s, seção 05)
+     - Previsão: fetchAIPrediction() (seção 03b) → updateAIScreen()
+     - Histórico: loadAIHistory() abaixo
+     As consultas são independentes.
+  ═════════════════════════════════════════════ */
+
+  async loadAIData() {
+    this.updateAIScreen();
+    await Promise.all([
+      this.fetchAIPrediction(),
+      this.loadAIHistory()
+    ]);
+  },
+
+  /** Histórico real (/sensor_history_treinamento/FS-001.json) → gráfico da tela de IA */
+  async loadAIHistory() {
+    if (!FIREBASE_HOST || !FIREBASE_SENSOR_ID) return;
+
+    let historyData = null;
+    try {
+      const url = `https://${FIREBASE_HOST}/sensor_history_treinamento/${FIREBASE_SENSOR_ID}.json`;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Histórico HTTP ${response.status}`);
+      historyData = await response.json();
+    } catch (error) {
+      console.warn('[FloodSense] Erro ao carregar histórico da IA:', error);
+      this.setText('ai-chart-meta', 'histórico indisponível');
+      return;
+    }
+
+    if (this.state.currentScreen !== 'ai') return;
+
+    const history = this.parseHistory(historyData);
+
+    // Mostra no máximo as 30 leituras mais recentes.
+    const recent = history.slice(-30);
+
+    const labels = recent.map((item, i) => {
+      const ms = item.timestamp > 1e12 ? item.timestamp : item.timestamp * 1000;
+      if (item.timestamp < 1e9) return `#${i + 1}`;   // timestamp não é epoch
+      return new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+    });
+    const levels = recent.map(item => Number(item.level.toFixed(1)));
+
+    const chart = this.state.chartInstances['chart-ai-pred'];
+    if (chart) {
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = levels;
+      chart.update('none');
+    }
+
+    this.setText('ai-history-count', String(history.length));
+    this.setText('ai-chart-meta', recent.length ? `${recent.length} leituras reais · Firebase` : 'sem leituras no histórico');
+  },
+
+
+  /* ═════════════════════════════════════════════
+     GRÁFICO DA IA
+   ═════════════════════════════════════════════ */
+
   initAICharts() {
+
     const d = this.chartDefaults();
 
-    // Previsão vs Real
     this.makeChart('chart-ai-pred', {
       type: 'line',
+
       data: {
-        labels: HISTORY_24H.labels,
+        labels: [],
+
         datasets: [
           {
-            label: 'Real', data: HISTORY_24H.centro,
-            borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.05)',
-            tension: 0.4, fill: true, borderWidth: 2, pointRadius: 0
-          },
-          {
-            label: 'Previsão IA',
-            data: HISTORY_24H.centro.map((v, i) => parseFloat((v * (0.95 + Math.sin(i) * 0.04)).toFixed(1))),
-            borderColor: '#a855f7', backgroundColor: 'transparent',
-            tension: 0.4, fill: false, borderWidth: 1.5,
-            borderDash: [5, 3], pointRadius: 0
+            label: 'Nível real FS-001',
+            data: [],
+            borderColor: '#00B8D9',
+            backgroundColor: 'rgba(0,184,217,0.08)',
+            tension: 0.35,
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointBackgroundColor: '#00B8D9'
           }
         ]
       },
+
       options: {
         ...d,
+        plugins: { ...d.plugins, legend: { display: false } },
         scales: {
           x: { ...d.scales.x, ticks: { ...d.scales.x.ticks, maxTicksLimit: 8 } },
-          y: { ...d.scales.y, ticks: { ...d.scales.y.ticks, callback: v => v + 'cm' } }
+          y: { ...d.scales.y, ticks: { ...d.scales.y.ticks, callback: value => value + ' cm' } }
         }
       }
     });
 
-    // Acurácia histórica
-    this.makeChart('chart-ai-acc', {
-      type: 'line',
-      data: {
-        labels: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
-        datasets: [
-          {
-            label: 'FloodSense AI', data: [85,86,87,88,88,89,90,90,91,91,92,92],
-            borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.07)',
-            tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#22c55e'
-          },
-          {
-            label: 'Baseline', data: [74,75,75,76,76,77,77,78,78,78,78,78],
-            borderColor: '#475569', backgroundColor: 'transparent',
-            tension: 0.4, borderWidth: 1, borderDash: [4, 3], pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        ...d,
-        scales: {
-          x: { ...d.scales.x },
-          y: { ...d.scales.y, min: 60, max: 100, ticks: { ...d.scales.y.ticks, callback: v => v + '%' } }
-        }
-      }
-    });
   },
 
   /* ═════════════════════════════════════════════
@@ -1435,29 +2247,31 @@ const FloodSense = {
   ═════════════════════════════════════════════ */
   renderCharts() {
     const root = document.getElementById('app-root');
+    const ai = this.aiSummary();
     root.innerHTML = `
       <div class="grid-2" style="margin-bottom:12px">
         <div class="chart-card">
-          <div class="chart-header"><span class="chart-title"><i data-lucide="trending-up"></i> Nível médio — 7 dias</span></div>
+          <div class="chart-header"><span class="chart-title"><i data-lucide="trending-up"></i> Nível médio — 7 dias · SIMULADO</span></div>
           <div class="chart-wrap" style="height:200px"><canvas id="chart-week"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-header"><span class="chart-title"><i data-lucide="cloud-rain"></i> Precipitação vs Nível</span></div>
+          <div class="chart-header"><span class="chart-title"><i data-lucide="cloud-rain"></i> Precipitação vs Nível · SIMULADO</span></div>
           <div class="chart-wrap" style="height:200px"><canvas id="chart-rain"></canvas></div>
         </div>
       </div>
       <div class="grid-2">
         <div class="chart-card" style="animation-delay:0.1s">
-          <div class="chart-header"><span class="chart-title"><i data-lucide="bar-chart-3"></i> Alertas por zona — Mês</span></div>
+          <div class="chart-header"><span class="chart-title"><i data-lucide="bar-chart-3"></i> Alertas por zona — Mês · SIMULADO</span></div>
           <div class="chart-wrap" style="height:200px"><canvas id="chart-zone"></canvas></div>
         </div>
-        <div class="chart-card" style="animation-delay:0.15s">
-          <div class="chart-header"><span class="chart-title"><i data-lucide="radar"></i> Comparação de Modelos</span></div>
-          <div class="chart-wrap" style="height:200px"><canvas id="chart-models"></canvas></div>
+        <div class="content-card" style="animation-delay:0.15s;margin-bottom:0">
+          <div class="content-card-header"><span class="content-card-title"><i data-lucide="brain"></i> IA — V4 Progressivo</span></div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">Modelo ExtraTrees com modos progressivos (STARTUP, LAG_5, LAG_15, FULL). Os dados reais publicados pelo modelo ficam na tela IA &amp; Previsões.</p>
+          <p style="font-size:11px;color:${ai.color};margin-top:12px">${this.esc(ai.text)}</p>
         </div>
       </div>
     `;
-    lucide.createIcons();
+    FloodSense.icons();
 
     const d = this.chartDefaults();
 
@@ -1467,9 +2281,9 @@ const FloodSense = {
         labels: ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
         datasets: [{
           data: [48,58,52,66,82,90,72],
-          borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.08)',
+          borderColor: '#00B8D9', backgroundColor: 'rgba(0,184,217,0.08)',
           tension: 0.4, fill: true, borderWidth: 2,
-          pointRadius: 4, pointBackgroundColor: '#38bdf8'
+          pointRadius: 4, pointBackgroundColor: '#00B8D9'
         }]
       },
       options: { ...d, scales: { ...d.scales, y: { ...d.scales.y, ticks: { ...d.scales.y.ticks, callback: v => v+'cm' }, suggestedMin: 0 } } }
@@ -1480,7 +2294,7 @@ const FloodSense = {
       data: {
         labels: ['00h','03h','06h','09h','12h','15h','18h','21h'],
         datasets: [
-          { label: 'Chuva (mm)', data: [5,12,25,18,8,15,30,22], backgroundColor: 'rgba(56,189,248,0.5)', borderRadius: 3, yAxisID: 'y' },
+          { label: 'Chuva (mm)', data: [5,12,25,18,8,15,30,22], backgroundColor: 'rgba(0,184,217,0.5)', borderRadius: 3, yAxisID: 'y' },
           { label: 'Nível (cm)', data: [45,52,65,72,68,74,88,82], borderColor: '#ef4444', type: 'line', tension: 0.4, borderWidth: 2, pointRadius: 0, yAxisID: 'y1' }
         ]
       },
@@ -1500,8 +2314,8 @@ const FloodSense = {
         labels: ['Centro','Z.Norte','Z.Sul','Z.Leste','Z.Oeste','Marginal'],
         datasets: [
           { label: 'Críticos', data: [8,5,4,3,1,4], backgroundColor: 'rgba(239,68,68,0.8)', borderRadius: 3, stack: 's' },
-          { label: 'Atenção',  data: [4,4,3,3,2,3], backgroundColor: 'rgba(250,204,21,0.7)', borderRadius: 0, stack: 's' },
-          { label: 'Normal',   data: [3,5,7,7,10,5], backgroundColor: 'rgba(34,197,94,0.6)', borderRadius: 0, stack: 's' }
+          { label: 'Atenção',  data: [4,4,3,3,2,3], backgroundColor: 'rgba(242,140,0,0.7)', borderRadius: 0, stack: 's' },
+          { label: 'Normal',   data: [3,5,7,7,10,5], backgroundColor: 'rgba(22,163,106,0.6)', borderRadius: 0, stack: 's' }
         ]
       },
       options: {
@@ -1513,24 +2327,6 @@ const FloodSense = {
       }
     });
 
-    this.makeChart('chart-models', {
-      type: 'bar',
-      data: {
-        labels: ['Naive Bayes','SVM','Random\nForest','IA\nTradicional','FloodSense\nAI'],
-        datasets: [{
-          data: [68, 74, 84, 78, 92],
-          backgroundColor: ['#475569','#475569','#facc15','#f97316','#22c55e'],
-          borderRadius: 4, borderSkipped: false
-        }]
-      },
-      options: {
-        ...d,
-        scales: {
-          x: { ...d.scales.x, grid: { display: false } },
-          y: { ...d.scales.y, min: 50, max: 100, ticks: { ...d.scales.y.ticks, callback: v => v+'%' } }
-        }
-      }
-    });
   },
 
   /* ═════════════════════════════════════════════
@@ -1560,7 +2356,7 @@ const FloodSense = {
       <div class="content-card mb" style="animation-delay:0.12s">
         <div class="content-card-header">
           <span class="content-card-title"><i data-lucide="siren"></i> Alertas Críticos — Ação Imediata</span>
-          <button class="btn btn-sm btn-danger" onclick="FloodSense.showToast('info','Defesa Civil','Equipe acionada via sistema.')">
+          <button class="btn btn-sm btn-danger" onclick="FloodSense.showToast('info','Defesa Civil','Ação simulada (demonstração): nenhuma equipe foi acionada.')">
             <i data-lucide="phone"></i> Acionar Defesa Civil
           </button>
         </div>
@@ -1609,7 +2405,122 @@ const FloodSense = {
         </div>
       </div>
     `;
-    lucide.createIcons();
+    FloodSense.icons();
+  },
+
+  /* ═════════════════════════════════════════════
+     12b. RELATÓRIOS EM PDF (abre a janela de impressão: escolha "Salvar como PDF")
+  ═════════════════════════════════════════════ */
+  async gerarRelatorio(tipo) {
+    const esc = s => String(s ?? '—').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    const numOk = v => typeof v === 'number' && Number.isFinite(v);
+    const toMs = v => {
+      const n = this.parseNum(v);
+      if (n !== null) return n > 1e12 ? n : (n > 1e9 ? n * 1000 : null);
+      const t = Date.parse(String(v));
+      return Number.isFinite(t) ? t : null;
+    };
+    const STATUS = { normal: 'Normal', warning: 'Atenção', critical: 'Crítico', offline: 'Offline' };
+
+    // Abrir a janela já no clique evita o bloqueio de pop-up depois do await.
+    const janela = window.open('', '_blank');
+    if (!janela) {
+      this.showToast('warning', 'Pop-up bloqueado', 'Permita pop-ups deste site para gerar o PDF.');
+      return;
+    }
+    janela.document.write('<p style="font-family:Arial,sans-serif;padding:24px">Gerando relatório…</p>');
+
+    const titulos = {
+      diario: 'Relatório Diário Completo',
+      semanal: 'Histórico Semanal — Nível Hídrico',
+      ia: 'Desempenho do Modelo IA'
+    };
+    const titulo = titulos[tipo] || 'Relatório FloodSense AI';
+    const agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const linhas = pares => pares.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('');
+
+    let corpo = '';
+    try {
+      if (tipo === 'diario') {
+        const leitura = await this.fetchCurrentRealSensor();
+        const pred = this.state.aiPrediction || this.emptyPrediction('loading');
+        const ms = leitura ? toMs(leitura.timestamp) : null;
+        corpo = `<table>${linhas([
+          ['Nível da água (FS-001)', leitura ? leitura.level.toFixed(1) + ' cm' : 'Sem leitura no momento'],
+          ['Status do sensor', leitura ? (STATUS[leitura.status] || leitura.status) : '—'],
+          ['Última leitura do sensor', ms ? this.fmtSaoPaulo(ms) : '—'],
+          ['Previsão da IA (+60 min)', numOk(pred.predicted) ? pred.predicted.toFixed(1) + ' cm' : 'Indisponível'],
+          ['Status da IA', this.aiStatusText(pred)]
+        ])}</table>`;
+      }
+
+      if (tipo === 'semanal') {
+        const url = `https://${FIREBASE_HOST}/sensor_history_treinamento/${FIREBASE_SENSOR_ID}.json`;
+        const resp = await fetch(url, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const dados = (await resp.json()) || {};
+        const limite = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const niveis = [];
+        Object.entries(dados).forEach(([chave, valor]) => {
+          const nivel = this.parseNum(valor && typeof valor === 'object' ? valor.level : valor);
+          const ms = toMs(valor && typeof valor === 'object' && valor.timestamp !== undefined ? valor.timestamp : chave);
+          if (nivel !== null && ms !== null && ms >= limite) niveis.push(nivel);
+        });
+        if (niveis.length === 0) {
+          corpo = '<p>Ainda não há leituras suficientes nos últimos 7 dias para gerar as estatísticas.</p>';
+        } else {
+          const media = niveis.reduce((a, b) => a + b, 0) / niveis.length;
+          corpo = `<table>${linhas([
+            ['Leituras nos últimos 7 dias', niveis.length],
+            ['Nível mínimo', Math.min(...niveis).toFixed(1) + ' cm'],
+            ['Nível máximo', Math.max(...niveis).toFixed(1) + ' cm'],
+            ['Nível médio', media.toFixed(1) + ' cm']
+          ])}</table>`;
+        }
+      }
+
+      if (tipo === 'ia') {
+        const pred = this.state.aiPrediction || this.emptyPrediction('loading');
+        corpo = `<table>${linhas([
+          ['Modelo', pred.model || '—'],
+          ['Algoritmo', pred.algorithm || '—'],
+          ['Versão', pred.version || '—'],
+          ['Conjunto de atributos', pred.mode || '—'],
+          ['Defasagens usadas (lags)', (pred.lags && pred.lags.length) ? pred.lags.join(', ') : '—'],
+          ['Erro médio absoluto no teste', numOk(pred.mae) ? pred.mae.toFixed(2) + ' cm' : '—'],
+          ['Previsão atual (+60 min)', numOk(pred.predicted) ? pred.predicted.toFixed(1) + ' cm' : 'Indisponível'],
+          ['Status da IA', this.aiStatusText(pred)]
+        ])}</table>`;
+      }
+    } catch (erro) {
+      console.error('[FloodSense] Falha ao gerar relatório:', erro);
+      corpo = '<p>Não foi possível buscar os dados agora. Verifique a conexão e tente de novo.</p>';
+    }
+
+    const html = `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>${esc(titulo)} — FloodSense AI</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: #263238; margin: 32px; }
+  h1 { color: #0B1F3A; font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #62747E; font-size: 12px; margin-bottom: 22px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border-bottom: 1px solid #E1EAEE; padding: 9px 8px; text-align: left; }
+  th { width: 55%; color: #62747E; font-weight: 600; }
+  .nota { font-size: 11px; color: #62747E; border-top: 1px solid #E1EAEE; padding-top: 10px; margin-top: 24px; }
+  @media print { body { margin: 14mm; } }
+</style></head>
+<body>
+  <h1>${esc(titulo)}</h1>
+  <div class="sub">FloodSense AI · Sensor ${esc(FIREBASE_SENSOR_ID)} (Sensor Centro) · Gerado em ${esc(agora)} (horário de Brasília)</div>
+  ${corpo}
+  <div class="nota">Dados obtidos do Firebase no momento da geração. Sensor FS-001: dado real (ESP32 + AJ-SR04M). Demais sensores do painel são simulados.</div>
+</body></html>`;
+
+    janela.document.open();
+    janela.document.write(html);
+    janela.document.close();
+    setTimeout(() => { try { janela.focus(); janela.print(); } catch (_) {} }, 400);
   },
 
   /* ═════════════════════════════════════════════
@@ -1617,6 +2528,8 @@ const FloodSense = {
   ═════════════════════════════════════════════ */
   renderReports() {
     const root = document.getElementById('app-root');
+    const ai = this.aiSummary();
+    const aiPred = this.state.aiPrediction || this.emptyPrediction('loading');
     root.innerHTML = `
       <div class="grid-2" style="margin-bottom:12px">
         <div class="content-card" style="margin-bottom:0">
@@ -1624,14 +2537,14 @@ const FloodSense = {
             <span class="content-card-title"><i data-lucide="file-text"></i> Relatórios Disponíveis</span>
           </div>
           ${[
-            { icon:'📊', name:'Relatório Diário Completo', meta:'PDF · Sensores, alertas e IA · Hoje', color:'var(--blue-dim)', btn:'pdf' },
-            { icon:'📈', name:'Histórico Semanal — Nível Hídrico', meta:'PDF · Gráficos + análise · Últimos 7 dias', color:'var(--blue-dim)', btn:'pdf' },
-            { icon:'🤖', name:'Desempenho do Modelo IA', meta:'PDF · Acurácia, F1-Score, matrizes · Mensal', color:'var(--purple-dim)', btn:'pdf' },
+            { icon:'📊', key:'diario', name:'Relatório Diário Completo', meta:'PDF · Sensor FS-001 e previsão da IA · Agora', color:'var(--blue-dim)', btn:'pdf' },
+            { icon:'📈', key:'semanal', name:'Histórico Semanal — Nível Hídrico', meta:'PDF · Estatísticas do FS-001 · Últimos 7 dias', color:'var(--blue-dim)', btn:'pdf' },
+            { icon:'🤖', key:'ia', name:'Desempenho do Modelo IA', meta:'PDF · Modelo, erro e previsão atual', color:'var(--purple-dim)', btn:'pdf' },
             { icon:'📋', name:'Dados Brutos — Sensores', meta:'CSV · Todas as leituras · Exportação raw', color:'var(--green-dim)', btn:'csv' },
             { icon:'🚨', name:'Log de Alertas', meta:'CSV · Histórico completo de alertas', color:'var(--red-dim)', btn:'csv' },
           ].map((r,i) => `
             <div class="report-card" style="animation-delay:${i*0.06}s;background:${r.color}">
-              <div class="report-icon" style="background:rgba(255,255,255,0.06);border-radius:var(--radius-sm)">
+              <div class="report-icon" style="background:rgba(11,31,58,0.05);border-radius:var(--radius-sm)">
                 <span style="font-size:20px">${r.icon}</span>
               </div>
               <div class="report-info">
@@ -1639,7 +2552,7 @@ const FloodSense = {
                 <div class="report-meta">${r.meta}</div>
               </div>
               <button class="btn btn-sm btn-outline report-btn"
-                onclick="FloodSense.showToast('info','Download Iniciado','${r.name} gerado com sucesso.')">
+                onclick="${r.key ? `FloodSense.gerarRelatorio('${r.key}')` : `FloodSense.showToast('info','Exportação simulada','${r.name}: esta exportação CSV ainda não foi implementada.')`}">
                 <i data-lucide="download"></i>
                 ${r.btn.toUpperCase()}
               </button>
@@ -1648,16 +2561,16 @@ const FloodSense = {
         </div>
         <div class="content-card" style="margin-bottom:0">
           <div class="content-card-header">
-            <span class="content-card-title"><i data-lucide="bar-chart-2"></i> Estatísticas do Período</span>
+            <span class="content-card-title"><i data-lucide="bar-chart-2"></i> Estatísticas do Período · SIMULADO</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:10px">
             ${[
               ['Total de Leituras (hoje)',    '86.400',  'var(--blue)'],
               ['Alertas Emitidos (mês)',       '142',    'var(--red)'],
               ['Tempo Médio de Resposta',      '3.2 min','var(--yellow)'],
-              ['Sensores Ativos',              '11/12',  'var(--green)'],
-              ['Acurácia Média da IA',         '91.4%',  'var(--green)'],
-              ['Eventos Previstos Corretamente','128/139','var(--green)'],
+              ['Sensores Ativos',              this.state.sensors.filter(x => x.status !== 'offline').length + '/' + this.state.sensors.length, 'var(--green)'],
+              ['Status da IA',                 this.aiStatusText(aiPred), this.aiStatusColor(aiPred)],
+              ['Previsão IA +60 min (FS-001)', ai.short, ai.color],
               ['Disponibilidade do Sistema',   '99.7%',  'var(--blue)'],
             ].map(([label, val, color]) => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-3)">
@@ -1666,15 +2579,15 @@ const FloodSense = {
               </div>
             `).join('')}
           </div>
-          <div style="margin-top:14px;padding:12px;background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.12);border-radius:var(--radius-sm);font-size:11px;color:var(--text-secondary)">
-            📌 <strong style="color:var(--text-primary)">Nota acadêmica:</strong> Os relatórios em PDF simulam a exportação real. 
-            Em produção, o backend gera PDFs via <code style="color:var(--blue)">ReportLab</code> (Python) ou 
+          <div style="margin-top:14px;padding:12px;background:rgba(0,184,217,0.05);border:1px solid rgba(0,184,217,0.18);border-radius:var(--radius-sm);font-size:11px;color:var(--text-secondary)">
+            📌 <strong style="color:var(--text-primary)">Nota acadêmica:</strong> Os relatórios em PDF simulam a exportação real.
+            Em produção, o backend gera PDFs via <code style="color:var(--blue)">ReportLab</code> (Python) ou
             <code style="color:var(--blue)">pdfkit</code> (Node.js).
           </div>
         </div>
       </div>
     `;
-    lucide.createIcons();
+    FloodSense.icons();
   },
 
   /* ═════════════════════════════════════════════
@@ -1682,6 +2595,8 @@ const FloodSense = {
   ═════════════════════════════════════════════ */
   renderConfig() {
     const root = document.getElementById('app-root');
+    const fbOk = this.state.realSensor?.ok === true;
+    const aiOk = (this.state.aiPrediction || {}).available === true;
     root.innerHTML = `
       <div class="grid-2" style="margin-bottom:12px">
         <!-- Alertas -->
@@ -1715,7 +2630,7 @@ const FloodSense = {
             <span class="content-card-title"><i data-lucide="sliders"></i> Limites de Nível Hídrico</span>
           </div>
           ${[
-            ['Nível de Atenção (Amarelo)', '60', 'cm — Monitoramento intensificado'],
+            ['Nível de Atenção (Laranja)', '60', 'cm — Monitoramento intensificado'],
             ['Nível Crítico (Vermelho)', '90', 'cm — Alerta e acionamento'],
             ['Nível de Emergência', '110', 'cm — Evacuação imediata'],
           ].map(([label, val, desc]) => `
@@ -1770,16 +2685,16 @@ const FloodSense = {
             <span class="content-card-title"><i data-lucide="server"></i> Status da Infraestrutura</span>
           </div>
           ${[
-            ['API Backend (Node.js)', 'online', '● Online · 12ms'],
-            ['Firebase Firestore', 'online', '● Sincronizado'],
-            ['Modelo IA (Python)', 'online', '● Ativo · v3.2.1'],
-            ['Rede IoT (LoRaWAN)', 'warning', '◑ 11/12 sensores'],
-            ['API INMET (Clima)', 'online', '● Conectado'],
-            ['Defesa Civil API', 'online', '● Integrado · v2.1'],
+            ['Firebase Realtime Database', fbOk ? 'online' : 'warning', fbOk ? '● Conectado' : '◑ Sem resposta'],
+            ['Sensor FS-001 (ESP32 + AJ-SR04M)', fbOk ? 'online' : 'warning', fbOk ? '● Dado real' : '◑ Sem leitura'],
+            [`Modelo IA (Python · ${this.esc(this.getAIModelName() || 'modelo de IA')})`, aiOk ? 'online' : 'warning', aiOk ? '● Previsão publicada' : '◑ Aguardando previsão'],
+            ['Sensores FS-002 a FS-012', 'warning', '◑ Simulados (demo)'],
+            ['API INMET (Clima)', 'warning', '◑ Não integrada'],
+            ['Defesa Civil API', 'warning', '◑ Não integrada'],
           ].map(([name, status, label]) => {
             const color = status === 'online' ? 'var(--green)' : status === 'warning' ? 'var(--yellow)' : 'var(--red)';
-            const bg    = status === 'online' ? 'rgba(34,197,94,0.08)' : status === 'warning' ? 'rgba(250,204,21,0.08)' : 'rgba(239,68,68,0.08)';
-            const border= status === 'online' ? 'rgba(34,197,94,0.15)' : status === 'warning' ? 'rgba(250,204,21,0.15)' : 'rgba(239,68,68,0.15)';
+            const bg    = status === 'online' ? 'rgba(22,163,106,0.08)' : status === 'warning' ? 'rgba(242,140,0,0.08)' : 'rgba(220,69,69,0.08)';
+            const border= status === 'online' ? 'rgba(22,163,106,0.18)' : status === 'warning' ? 'rgba(242,140,0,0.18)' : 'rgba(220,69,69,0.18)';
             return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:${bg};border:1px solid ${border};border-radius:var(--radius-sm);margin-bottom:6px">
               <span style="font-size:12px;color:var(--text-secondary)">${name}</span>
               <span style="font-size:11px;font-family:var(--text-mono);color:${color};font-weight:600">${label}</span>
@@ -1788,7 +2703,7 @@ const FloodSense = {
         </div>
       </div>
     `;
-    lucide.createIcons();
+    FloodSense.icons();
   },
 
   /* ═════════════════════════════════════════════
@@ -1807,7 +2722,7 @@ const FloodSense = {
     if (!container) return;
 
     const icons = { critical: '🚨', warning: '⚠️', success: '✅', info: 'ℹ️' };
-    const id = `toast-${Date.now()}`;
+    const id = `toast-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
 
     const el = document.createElement('div');
     el.className = `toast toast-${type === 'critical' ? 'critical' : type === 'warning' ? 'warning' : type === 'success' ? 'success' : 'info'}`;
@@ -1823,7 +2738,6 @@ const FloodSense = {
 
     container.appendChild(el);
 
-    // Auto-remover após duration ms
     setTimeout(() => this.dismissToast(id), duration);
   },
 
@@ -1838,7 +2752,7 @@ const FloodSense = {
      16. UTILITÁRIOS DE UI
   ═════════════════════════════════════════════ */
 
-  /** Inicia o relógio em tempo real */
+  /** Inicia o relógio */
   startClock() {
     const tick = () => {
       const now = new Date();
@@ -1865,23 +2779,25 @@ const FloodSense = {
   }
 };
 
+/* Estado inicial da previsão da IA (precisa dos métodos do objeto, por isso fica aqui) */
+FloodSense.state.aiPrediction = FloodSense.emptyPrediction('loading');
+
 /* ═══════════════════════════════════════════════════════════════════
    17. INICIALIZAÇÃO
-   Executa após o DOM estar completamente carregado.
 ═══════════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  // Renderiza ícones Lucide na tela de login
-  lucide.createIcons();
+  FloodSense.icons();
 
-  // Define configurações globais padrão do Chart.js
-  Chart.defaults.font.family = "'Space Grotesk', system-ui, sans-serif";
-  Chart.defaults.color = '#475569';
-  Chart.defaults.borderColor = 'rgba(30,41,59,0.5)';
+  // Configurações globais padrão do Chart.js
+  if (typeof Chart !== 'undefined') {
+    Chart.defaults.font.family = "'Space Grotesk', system-ui, sans-serif";
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.borderColor = 'rgba(11,31,58,0.08)';
+  }
 
   console.log(
-    '%c FloodSense AI v3.0 ',
-    'background:#38bdf8;color:#000;font-weight:bold;padding:4px 8px;border-radius:4px',
-    '\nTCC — Sistemas de Informação',
-    '\nCredenciais demo: admin@floodsense.ai / floodsense2025'
+    '%c FloodSense AI ',
+    'background:#0066FF;color:#fff;font-weight:bold;padding:4px 8px;border-radius:4px',
+    '\nTCC — Sistemas de Informação'
   );
 });
