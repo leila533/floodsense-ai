@@ -2524,6 +2524,82 @@ const FloodSense = {
   },
 
   /* ═════════════════════════════════════════════
+     12c. EXPORTAÇÃO CSV (download direto; separador ';' para abrir no Excel em pt-BR)
+  ═════════════════════════════════════════════ */
+  async exportarCSV(tipo) {
+    const celula = v => {
+      const txt = (v === null || v === undefined) ? '' : String(v);
+      return /[;"\r\n]/.test(txt) ? '"' + txt.replace(/"/g, '""') + '"' : txt;
+    };
+    const baixar = (nome, cabecalho, linhas) => {
+      const conteudo = [cabecalho, ...linhas].map(l => l.map(celula).join(';')).join('\r\n');
+      const blob = new Blob(['\uFEFF' + conteudo], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nome;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    // Data de hoje no fuso de São Paulo, no formato AAAA-MM-DD
+    const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+
+    if (tipo === 'dados') {
+      try {
+        const url = `https://${FIREBASE_HOST}/sensor_history_treinamento/${FIREBASE_SENSOR_ID}.json`;
+        const resp = await fetch(url, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const dados = (await resp.json()) || {};
+        const toMs = v => {
+          const n = this.parseNum(v);
+          if (n !== null) return n > 1e12 ? n : (n > 1e9 ? n * 1000 : null);
+          const t = Date.parse(String(v));
+          return Number.isFinite(t) ? t : null;
+        };
+        const registros = [];
+        Object.entries(dados).forEach(([chave, valor]) => {
+          const nivel = this.parseNum(valor && typeof valor === 'object' ? valor.level : valor);
+          const ms = toMs(valor && typeof valor === 'object' && valor.timestamp !== undefined ? valor.timestamp : chave);
+          if (nivel !== null && ms !== null) registros.push({ ms, nivel });
+        });
+        if (registros.length === 0) {
+          this.showToast('warning', 'Sem dados', 'Não há leituras do FS-001 para exportar.');
+          return;
+        }
+        registros.sort((a, b) => a.ms - b.ms);
+        const linhas = registros.map(r => [
+          new Date(r.ms).toISOString(),
+          this.fmtSaoPaulo(r.ms),
+          r.ms,
+          r.nivel.toFixed(2).replace('.', ','),
+          'REAL (ESP32 · FS-001)'
+        ]);
+        baixar(`floodsense_dados_FS-001_${hoje}.csv`,
+          ['data_hora_utc', 'data_hora_sao_paulo', 'timestamp_ms', 'nivel_agua_cm', 'origem'], linhas);
+        this.showToast('success', 'CSV gerado', `${linhas.length} leituras do FS-001 exportadas.`);
+      } catch (erro) {
+        console.error('[FloodSense] Falha ao exportar dados:', erro);
+        this.showToast('critical', 'Falha na exportação', 'Não foi possível buscar os dados. Verifique a conexão.');
+      }
+      return;
+    }
+
+    if (tipo === 'alertas') {
+      const alertas = this.state.alerts || [];
+      if (alertas.length === 0) {
+        this.showToast('warning', 'Sem alertas', 'Não há alertas para exportar.');
+        return;
+      }
+      const linhas = alertas.map(a => [a.id, a.time, a.type, a.badge, a.sensor, a.zone, a.msg, 'SIMULADO']);
+      baixar(`floodsense_log_alertas_${hoje}.csv`,
+        ['id', 'hora', 'tipo', 'classificacao', 'sensor', 'zona', 'mensagem', 'origem'], linhas);
+      this.showToast('success', 'CSV gerado', `${linhas.length} alertas exportados (dados simulados).`);
+    }
+  },
+
+  /* ═════════════════════════════════════════════
      13. TELA: RELATÓRIOS
   ═════════════════════════════════════════════ */
   renderReports() {
@@ -2540,8 +2616,8 @@ const FloodSense = {
             { icon:'📊', key:'diario', name:'Relatório Diário Completo', meta:'PDF · Sensor FS-001 e previsão da IA · Agora', color:'var(--blue-dim)', btn:'pdf' },
             { icon:'📈', key:'semanal', name:'Histórico Semanal — Nível Hídrico', meta:'PDF · Estatísticas do FS-001 · Últimos 7 dias', color:'var(--blue-dim)', btn:'pdf' },
             { icon:'🤖', key:'ia', name:'Desempenho do Modelo IA', meta:'PDF · Modelo, erro e previsão atual', color:'var(--purple-dim)', btn:'pdf' },
-            { icon:'📋', name:'Dados Brutos — Sensores', meta:'CSV · Todas as leituras · Exportação raw', color:'var(--green-dim)', btn:'csv' },
-            { icon:'🚨', name:'Log de Alertas', meta:'CSV · Histórico completo de alertas', color:'var(--red-dim)', btn:'csv' },
+            { icon:'📋', csv:'dados', name:'Dados Brutos — Sensores', meta:'CSV · Leituras do FS-001 (REAL) · Exportação raw', color:'var(--green-dim)', btn:'csv' },
+            { icon:'🚨', csv:'alertas', name:'Log de Alertas', meta:'CSV · Alertas do painel (SIMULADOS)', color:'var(--red-dim)', btn:'csv' },
           ].map((r,i) => `
             <div class="report-card" style="animation-delay:${i*0.06}s;background:${r.color}">
               <div class="report-icon" style="background:rgba(11,31,58,0.05);border-radius:var(--radius-sm)">
@@ -2552,7 +2628,7 @@ const FloodSense = {
                 <div class="report-meta">${r.meta}</div>
               </div>
               <button class="btn btn-sm btn-outline report-btn"
-                onclick="${r.key ? `FloodSense.gerarRelatorio('${r.key}')` : `FloodSense.showToast('info','Exportação simulada','${r.name}: esta exportação CSV ainda não foi implementada.')`}">
+                onclick="${r.key ? `FloodSense.gerarRelatorio('${r.key}')` : `FloodSense.exportarCSV('${r.csv}')`}">
                 <i data-lucide="download"></i>
                 ${r.btn.toUpperCase()}
               </button>

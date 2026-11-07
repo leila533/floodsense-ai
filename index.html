@@ -102,8 +102,15 @@
           </div>
         </div>
 
+        <div style="text-align:right;margin:-4px 0 10px">
+          <button type="button" id="btn-esqueci" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-size:13px;padding:0">
+            Esqueci minha senha
+          </button>
+        </div>
+
         <!-- Erro de login — exibido via JS -->
         <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
+        <p id="login-info" role="status" aria-live="polite" style="font-size:13px;margin:6px 0"></p>
 
         <button type="submit" class="btn-login" id="btn-login">
           <i data-lucide="log-in" aria-hidden="true"></i>
@@ -401,8 +408,35 @@
       console.log("[FloodSense] Estado do login:", user ? user.email : "deslogado");
       if (user) mostrarApp();
     });
-    // Liga o formulário ao login do Firebase 
+    // Liga o formulário ao login do Firebase
     document.getElementById("login-form").addEventListener("submit", handleLoginFirebase);
+
+    // "Esqueci minha senha": o Firebase envia um e-mail com link para cadastrar uma nova senha.
+    async function handleEsqueciSenha() {
+      const email = document.getElementById("input-email").value.trim();
+      const erro = document.getElementById("login-error");
+      const info = document.getElementById("login-info");
+      erro.textContent = "";
+      info.textContent = "";
+
+      if (!email) {
+        erro.textContent = "Digite o e-mail acima para receber o link de nova senha.";
+        return;
+      }
+      try {
+        await firebase.auth().sendPasswordResetEmail(email);
+        info.textContent = "Enviamos um link para criar uma nova senha no e-mail informado. Verifique também a caixa de spam.";
+      } catch (e) {
+        console.error("[FloodSense] Falha ao enviar redefinição:", e.code, e.message);
+        if (e.code === "auth/user-not-found") {
+          // Mesma mensagem de sucesso, para não revelar quais e-mails têm conta
+          info.textContent = "Se este e-mail estiver cadastrado, enviamos um link para criar uma nova senha.";
+        } else {
+          erro.textContent = MENSAGENS_LOGIN[e.code] || "Não foi possível enviar o link agora.";
+        }
+      }
+    }
+    document.getElementById("btn-esqueci").addEventListener("click", handleEsqueciSenha);
   </script>
 
   <!-- Lógica do painel (script.js) -->
