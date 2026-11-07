@@ -2663,13 +2663,13 @@ const FloodSense = {
           </div>
           <div style="display:flex;flex-direction:column;gap:10px">
             ${[
-              ['Total de Leituras (hoje)',    '86.400',  'var(--blue)'],
-              ['Alertas Emitidos (mês)',       '142',    'var(--red)'],
+              ['Total de Leituras (hoje) · simulado', '86.400', 'var(--blue)'],
+              ['Alertas Emitidos (mês) · simulado', '142', 'var(--red)'],
               ['Tempo Médio de Resposta',      '3.2 min','var(--yellow)'],
               ['Sensores Ativos',              this.state.sensors.filter(x => x.status !== 'offline').length + '/' + this.state.sensors.length, 'var(--green)'],
               ['Status da IA',                 this.aiStatusText(aiPred), this.aiStatusColor(aiPred)],
               ['Previsão IA +60 min (FS-001)', ai.short, ai.color],
-              ['Disponibilidade do Sistema',   '99.7%',  'var(--blue)'],
+              ['Disponibilidade do Sistema · simulado', '99.7%', 'var(--blue)'],
             ].map(([label, val, color]) => `
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-3)">
                 <span style="font-size:12px;color:var(--text-secondary)">${label}</span>
@@ -2678,9 +2678,9 @@ const FloodSense = {
             `).join('')}
           </div>
           <div style="margin-top:14px;padding:12px;background:rgba(0,184,217,0.05);border:1px solid rgba(0,184,217,0.18);border-radius:var(--radius-sm);font-size:11px;color:var(--text-secondary)">
-            📌 <strong style="color:var(--text-primary)">Nota acadêmica:</strong> Os relatórios em PDF simulam a exportação real.
-            Em produção, o backend gera PDFs via <code style="color:var(--blue)">ReportLab</code> (Python) ou
-            <code style="color:var(--blue)">pdfkit</code> (Node.js).
+            📌 <strong style="color:var(--text-primary)">Nota acadêmica:</strong> Os PDFs abrem a janela de impressão do navegador
+            (escolha "Salvar como PDF"). Os CSV de leituras usam dados reais do FS-001; o log de alertas e as estatísticas
+            marcadas como simuladas não são dados medidos.
           </div>
         </div>
       </div>
