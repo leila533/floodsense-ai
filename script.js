@@ -265,7 +265,7 @@ const ALERTS_DATA = [
   { id: 1, type: 'critical', icon: '🚨', zone: 'Centro — Praça da Sé', sensor: 'DEMO',
     msg: 'Cenário de demonstração: nível de 115cm. Não é leitura do ESP32.', time: '09:14', badge: 'CRÍTICO' },
   { id: 2, type: 'critical', icon: '🚨', zone: 'Zona Norte — Santana', sensor: 'FS-002',
-    msg: 'Nível em 92cm, ultrapassando limite crítico (90cm). Evacuação preventiva recomendada.', time: '09:12', badge: 'CRÍTICO' },
+    msg: 'Dado simulado: nível de 92cm, acima do limite crítico (90cm). Não é leitura do ESP32.', time: '09:12', badge: 'CRÍTICO' },
   { id: 3, type: 'warning', icon: '⚠️', zone: 'Zona Sul — Santo Amaro', sensor: 'FS-003',
     msg: 'Nível em 85cm. Tendência crescente. Monitoramento intensificado.', time: '09:10', badge: 'ATENÇÃO' },
   { id: 4, type: 'warning', icon: '⚠️', zone: 'Marginal Tietê — KM12', sensor: 'FS-006',
@@ -292,7 +292,7 @@ const FloodSense = {
     /* FS-001 começa SEM LEITURA (offline) até /sensors/FS-001.json responder.
        Os demais sensores são simulados. */
     sensors:     JSON.parse(JSON.stringify(SENSORS_BASE)).map(s => s.id === FIREBASE_SENSOR_ID ? fs001Offline(s) : { ...s, source: 'simulated' }),
-    alerts:      ALERTS_DATA.map(a => ({ ...a, zone: a.zone + ' · SIMULADO' })),
+    alerts:      ALERTS_DATA.filter(a => a.sensor !== 'DEMO').map(a => ({ ...a, zone: a.zone + ' · SIMULADO' })),
     sidebarOpen: false,
     iotInterval: null,
     clockInterval: null,
@@ -376,13 +376,15 @@ const FloodSense = {
   /** Algoritmo amigável (ET_... / ExtraTreesRegressor → ExtraTrees) */
   friendlyAlgo(p) {
     const a = (p && p.algorithm) || '';
+    if (/gradient|^GBR/i.test(a)) return 'GradientBoosting';
     if (/^ET/i.test(a) || /extra/i.test(a)) return 'ExtraTrees';
     return (p && p.model) || a || null;
   },
 
   /** "ExtraTrees · LAG_15" ou null */
   aiModelLabel(p) {
-    const s = [this.friendlyAlgo(p), p && p.mode].filter(Boolean).join(' · ');
+    const modo = (p && /^(STARTUP|LAG_5|LAG_15|FULL)$/.test(p.model || '')) ? p.model : ((p && p.mode && p.mode !== 'CORE') ? p.mode : null);
+    const s = [this.friendlyAlgo(p), modo].filter(Boolean).join(' · ');
     return s || null;
   },
 
@@ -609,6 +611,10 @@ const FloodSense = {
       p.reason = 'no_value';
     } else if (!p.compatible) {
       p.reason = 'incompatible';
+    } else if (p.stale) {
+      // Previsão antiga: não é tratada como atual (valor fica guardado só para referência)
+      p.reason = 'stale';
+      p.available = false;
     } else {
       p.reason = 'ok';
       p.available = true;
@@ -616,9 +622,20 @@ const FloodSense = {
     return p;
   },
 
+  /** Idade em minutos por extenso (ex.: "14 dias e 18 h") */
+  fmtAgeMin(min) {
+    if (min === null || min === undefined) return '—';
+    if (min < 60) return `${min} min`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `${h} h ${min % 60} min`;
+    const d = Math.floor(h / 24);
+    return `${d} dia${d > 1 ? 's' : ''} e ${h % 24} h`;
+  },
+
   /** Texto "indisponível" conforme o motivo */
   aiWaitingText(p) {
     switch (p && p.reason) {
+      case 'stale':        return `Previsão desatualizada (gerada há ${this.fmtAgeMin(p.ageMin)}). Aguardando nova previsão da IA.`;
       case 'loading':      return 'Consultando previsão da IA...';
       case 'error':        return 'Não foi possível consultar a previsão no Firebase';
       case 'incompatible': return 'Previsão recebida, mas não marcada como compatível com cm';
@@ -678,6 +695,7 @@ const FloodSense = {
   aiStatusText(p) {
     p = p || this.state.aiPrediction || this.emptyPrediction('loading');
     if (p.available) return `IA ONLINE · +${p.horizon} MIN`;
+    if (p.reason === 'stale') return 'IA · PREVISÃO DESATUALIZADA';
     if (p.reason === 'error') return 'IA · SEM CONEXÃO';
     return 'IA AGUARDANDO PREVISÃO';
   },
@@ -694,7 +712,7 @@ const FloodSense = {
     const st = document.getElementById('sb-ai-status');
     if (!st) return;
     const p = this.state.aiPrediction || this.emptyPrediction('loading');
-    st.textContent = p.available ? 'ONLINE' : (p.reason === 'error' ? 'SEM CONEXÃO' : 'AGUARDANDO');
+    st.textContent = p.available ? 'ONLINE' : (p.reason === 'stale' ? 'DESATUALIZADA' : (p.reason === 'error' ? 'SEM CONEXÃO' : 'AGUARDANDO'));
     st.style.color = this.aiStatusColor(p);
     const m = document.getElementById('sb-ai-model');
     if (m) m.textContent = (p.available && this.aiModelLabel(p)) || 'V4 Progressivo';
@@ -1105,18 +1123,19 @@ const FloodSense = {
     const navCount = document.getElementById('nav-count-sensors');
     if (navCount) navCount.textContent = s.length;
 
-    const alertCount = s.filter(x => x.status === 'critical' || x.status === 'warning').length;
+    const alertCount = (FloodSense.state.alerts || []).filter(a => a.type === 'critical' || a.type === 'warning').length;
     const navAlerts  = document.getElementById('nav-count-alerts');
     if (navAlerts) navAlerts.textContent = alertCount;
 
-    const criticals = s.filter(x => x.status === 'critical');
+    // Barra do topo: só o sensor REAL (FS-001). Sensores simulados não disparam alarme aqui.
+    const criticals = s.filter(x => x.status === 'critical' && x.source === 'real');
     const critBar   = document.getElementById('critical-bar');
     const critText  = document.getElementById('critical-bar-text');
     if (critBar && critText) {
       if (criticals.length > 0) {
         critBar.classList.remove('hidden');
-        const c0 = criticals.find(x => x.source === 'real') || criticals[0];
-        critText.textContent = `${c0.name}: CRÍTICO ${c0.level}cm · ${c0.source === 'real' ? 'REAL' : 'SIMULADO'}`;
+        const c0 = criticals[0];
+        critText.textContent = `${c0.name}: CRÍTICO ${c0.level}cm · REAL`;
       } else {
         critBar.classList.add('hidden');
       }
@@ -1391,13 +1410,16 @@ const FloodSense = {
     const offline = s.filter(x => x.status === 'offline');
     const crits   = s.filter(x => x.status === 'critical');
     const warns   = s.filter(x => x.status === 'warning');
+    const alCrit  = (this.state.alerts || []).filter(a => a.type === 'critical').length;
+    const alWarn  = (this.state.alerts || []).filter(a => a.type === 'warning').length;
 
-    const avgLvl = online.length
-      ? (online.reduce((total, x) => total + Number(x.level || 0), 0) / online.length).toFixed(1)
+    const simOn  = online.filter(x => x.source !== 'real');   // média e máximo: só SIMULADOS
+    const avgLvl = simOn.length
+      ? (simOn.reduce((total, x) => total + Number(x.level || 0), 0) / simOn.length).toFixed(1)
       : '0.0';
 
-    const maxLvl = online.length
-      ? Math.max(...online.map(x => Number(x.level || 0))).toFixed(1)
+    const maxLvl = simOn.length
+      ? Math.max(...simOn.map(x => Number(x.level || 0))).toFixed(1)
       : '0.0';
 
     const uptime = s.length ? Math.round((online.length / s.length) * 100) : 0;
@@ -1427,7 +1449,7 @@ const FloodSense = {
       {
         label: 'Nível Médio H₂O',
         value: `${avgLvl}cm`,
-        sub: `Máx: ${maxLvl}cm · real + simulados`,
+        sub: `Máx: ${maxLvl}cm · média só de sensores SIMULADOS`,
         type:    Number(avgLvl) >= 90 ? 'red'      : Number(avgLvl) >= 60 ? 'yellow'      : 'green',
         icon: 'droplets',
         iconCls: Number(avgLvl) >= 90 ? 'ic-red'   : Number(avgLvl) >= 60 ? 'ic-yellow'   : 'ic-green',
@@ -1452,14 +1474,14 @@ const FloodSense = {
       /* 4 — Alertas Ativos */
       {
         label: 'Alertas Ativos',
-        value: crits.length + warns.length,
-        sub: `${crits.length} críticos · ${warns.length} atenção`,
-        type:    crits.length > 0 ? 'red'     : warns.length > 0 ? 'yellow'     : 'green',
+        value: alCrit + alWarn,
+        sub: `${alCrit} críticos · ${alWarn} atenção`,
+        type:    alCrit > 0 ? 'red'     : alWarn > 0 ? 'yellow'     : 'green',
         icon: 'bell',
-        iconCls: crits.length > 0 ? 'ic-red'  : warns.length > 0 ? 'ic-yellow'  : 'ic-green',
-        valCls:  crits.length > 0 ? 'col-red' : warns.length > 0 ? 'col-yellow' : 'col-green',
-        trend:   crits.length > 0 ? '▲ Ação imediata' : warns.length > 0 ? '▲ Atenção' : '● Monitorando',
-        trendType: crits.length > 0 ? 'up' : 'flat'
+        iconCls: alCrit > 0 ? 'ic-red'  : alWarn > 0 ? 'ic-yellow'  : 'ic-green',
+        valCls:  alCrit > 0 ? 'col-red' : alWarn > 0 ? 'col-yellow' : 'col-green',
+        trend:   alCrit > 0 ? '▲ Ação imediata' : alWarn > 0 ? '▲ Atenção' : '● Monitorando',
+        trendType: alCrit > 0 ? 'up' : 'flat'
       },
 
       /* 5 — Áreas Monitoradas */
@@ -1478,7 +1500,7 @@ const FloodSense = {
       /* 6 — Status da IA */
       {
         label: 'Status da IA',
-        value: aiOk ? 'ATIVA' : (aiPred.reason === 'error' ? 'FALHA' : 'AGUARDANDO'),
+        value: aiOk ? 'ATIVA' : (aiPred.reason === 'stale' ? 'DESATUALIZADA' : (aiPred.reason === 'error' ? 'FALHA' : 'AGUARDANDO')),
         sub: aiOk ? `${this.esc(this.aiModelLabel(aiPred) || 'Modelo')} · ${this.esc(aiPred.unit || 'cm')}` : this.aiWaitingText(aiPred),
         type: aiOk ? 'green' : (aiPred.reason === 'error' ? 'red' : 'yellow'),
         icon: 'cpu',
@@ -2266,7 +2288,7 @@ const FloodSense = {
         </div>
         <div class="content-card" style="animation-delay:0.15s;margin-bottom:0">
           <div class="content-card-header"><span class="content-card-title"><i data-lucide="brain"></i> IA — V4 Progressivo</span></div>
-          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">Modelo ExtraTrees com modos progressivos (STARTUP, LAG_5, LAG_15, FULL). Os dados reais publicados pelo modelo ficam na tela IA &amp; Previsões.</p>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">Modelo progressivo com quatro modos (STARTUP, LAG_5, LAG_15, FULL). STARTUP e LAG_5 usam GradientBoosting; LAG_15 e FULL usam ExtraTrees. O modo é escolhido conforme as leituras disponíveis. Os dados reais publicados ficam na tela IA &amp; Previsões.</p>
           <p style="font-size:11px;color:${ai.color};margin-top:12px">${this.esc(ai.text)}</p>
         </div>
       </div>
@@ -2343,7 +2365,7 @@ const FloodSense = {
         ${[
           { label:'Alertas Críticos', val:crits.length, color:'var(--red)', icon:'🚨' },
           { label:'Atenção',          val:warns.length, color:'var(--yellow)', icon:'⚠️' },
-          { label:'Resolvidos Hoje',  val:5,            color:'var(--green)', icon:'✅' }
+          { label:'Normalizados (lista)', val:this.state.alerts.filter(a => a.type === 'info').length, color:'var(--green)', icon:'✅' }
         ].map((k,i) => `
           <div class="content-card" style="text-align:center;margin-bottom:0;animation-delay:${i*0.06}s;padding:14px">
             <div style="font-size:24px;margin-bottom:6px">${k.icon}</div>
@@ -2356,7 +2378,7 @@ const FloodSense = {
       <div class="content-card mb" style="animation-delay:0.12s">
         <div class="content-card-header">
           <span class="content-card-title"><i data-lucide="siren"></i> Alertas Críticos — Ação Imediata</span>
-          <button class="btn btn-sm btn-danger" onclick="FloodSense.showToast('info','Defesa Civil','Ação simulada (demonstração): nenhuma equipe foi acionada.')">
+          <button class="btn btn-sm btn-danger" disabled title="Integração com a Defesa Civil ainda não implementada" style="opacity:.55;cursor:not-allowed">
             <i data-lucide="phone"></i> Acionar Defesa Civil
           </button>
         </div>
