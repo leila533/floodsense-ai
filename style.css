@@ -1028,7 +1028,7 @@ a { color: inherit; text-decoration: none; }
   background: linear-gradient(135deg, #F7FCFA, #fff);
 }
 .fs-contact-card strong { display: block; color: var(--navy); font-size: 13px; margin-bottom: 3px; }
-.fs-contact-card span { color: #74848D; font-size: 10px; }
+.fs-contact-info span { color: #74848D; font-size: 10px; }
 .fs-whatsapp-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   padding: 10px 15px;
@@ -1044,6 +1044,8 @@ a { color: inherit; text-decoration: none; }
 }
 .fs-whatsapp-btn:hover { transform: translateY(-2px); background: #1AA35F; }
 .fs-whatsapp-btn svg { width: 14px; height: 14px; }
+.fs-whatsapp-btn span { color: #fff; font-size: 11px; font-weight: 800; }
+.fs-whatsapp-btn { min-height: 44px; text-decoration: none; }
 
 /* Tags de origem do dado */
 .data-tag { display: inline-flex; align-items: center; margin-left: 6px; padding: 2px 7px; border-radius: 999px; border: 1px solid; font-size: 9px; font-weight: 800; letter-spacing: .6px; line-height: 1.4; vertical-align: middle; white-space: nowrap; }
