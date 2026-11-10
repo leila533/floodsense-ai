@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import os
 import requests
 import numpy as np
 import pandas as pd
@@ -215,11 +216,28 @@ def buscar_historico_operacional():
     )
 
 
-def publicar_previsao(payload):
-    url = f"{FIREBASE_HOST}{PREDICTION_PATH}"
+from carregar_segredos import carregar as _carregar_segredos
+_carregar_segredos()
 
-    # PATCH atualiza só os campos enviados e não apaga os demais
-    # campos que o dashboard possa estar lendo.
+
+def login_dispositivo():
+    """Login do dispositivo (mesma conta usada pelo ESP32). Necessário para escrever no Firebase."""
+    api_key = os.environ.get("FS_API_KEY")
+    email = os.environ.get("FS_DEVICE_EMAIL")
+    senha = os.environ.get("FS_DEVICE_PASSWORD")
+    if not (api_key and email and senha):
+        raise RuntimeError("Defina FS_API_KEY, FS_DEVICE_EMAIL e FS_DEVICE_PASSWORD antes de rodar.")
+    url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
+    r = requests.post(url, json={"email": email, "password": senha, "returnSecureToken": True}, timeout=20)
+    if r.status_code != 200:
+        raise RuntimeError(f"Falha no login do dispositivo: HTTP {r.status_code}")
+    return r.json()["idToken"]
+
+
+def publicar_previsao(payload):
+    token = login_dispositivo()
+    url = f"{FIREBASE_HOST}{PREDICTION_PATH}?auth={token}"
+    # PATCH atualiza só os campos enviados e não apaga os demais.
     resposta = requests.patch(url, json=payload, timeout=20)
     resposta.raise_for_status()
 

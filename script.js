@@ -429,8 +429,12 @@ const FloodSense = {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     const badge = document.getElementById('real-sensor-status-badge');
     this.state.realSensor = { ok: !!d };
+    const panel = document.getElementById('real-sensor-panel');
+    if (panel) { panel.classList.remove('is-loading'); panel.setAttribute('aria-busy', 'false'); panel.classList.toggle('is-empty', !d); }
     if (!d) {
       set('real-level', '--');
+      const _g0 = document.getElementById('fs-gauge');
+      if (_g0) _g0.style.setProperty('--nivel', '0%');
       set('real-distance', '--');
       set('real-status', 'OFFLINE');
       set('real-connection-text', 'FS-001 offline · aguardando ESP32/Firebase');
@@ -439,6 +443,8 @@ const FloodSense = {
       return;
     }
     set('real-level', d.level.toFixed(1));
+    const _g = document.getElementById('fs-gauge');
+    if (_g) _g.style.setProperty('--nivel', Math.max(0, Math.min(100, d.level / 120 * 100)) + '%');
     set('real-distance', d.distance === null ? '--' : d.distance.toFixed(1));   // nunca derivado de 100 - nível
     set('real-status', d.status === 'critical' ? 'CRÍTICO' : d.status === 'warning' ? 'ATENÇÃO' : 'NORMAL');
     let when = 'consultado às ' + new Date().toLocaleTimeString('pt-BR');
@@ -449,9 +455,43 @@ const FloodSense = {
     }
     set('real-updated', when);
     set('real-connection-text', 'conectado ao Firebase');
+    this.loadRealSparkline();
     if (badge) {
       badge.textContent = '● ONLINE · FS-001';
       badge.className = 'real-status-badge ' + (d.status === 'critical' ? 'critical' : d.status === 'warning' ? 'warning' : 'online');
+    }
+  },
+
+  /** Mini gráfico com o histórico real do FS-001 (últimas 60 leituras). Sem dado → não desenha nada. */
+  async loadRealSparkline() {
+    const box = document.getElementById('fs-spark');
+    if (!box) return;
+    const now = Date.now();
+    if (this.state.sparkAt && now - this.state.sparkAt < 300000) return;
+    this.state.sparkAt = now;
+    try {
+      const url = `https://${FIREBASE_HOST}/sensor_history_treinamento/${FIREBASE_SENSOR_ID}.json`;
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('histórico indisponível');
+      const hist = this.parseHistory(await r.json()).slice(-60);
+      if (hist.length < 2) { box.innerHTML = ''; return; }
+      const W = 600, H = 60, P = 4;
+      const t0 = hist[0].timestamp, t1 = hist[hist.length - 1].timestamp;
+      const span = (t1 - t0) || 1;
+      const maxL = Math.max(120, ...hist.map(h => h.level));
+      const pts = hist.map(h => [
+        (P + (W - 2 * P) * ((h.timestamp - t0) / span)).toFixed(1),
+        (H - P - (H - 2 * P) * (h.level / maxL)).toFixed(1)
+      ]);
+      const linha = pts.map((p, i) => (i ? 'L' : 'M') + p.join(',')).join(' ');
+      const area = `${linha} L${pts[pts.length - 1][0]},${H} L${pts[0][0]},${H} Z`;
+      box.innerHTML = `<div class="fs-spark-label">Tendência · últimas ${hist.length} leituras do FS-001 (histórico real)</div>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Tendência do nível da água">
+          <path d="${area}" class="fs-spark-area"></path>
+          <path d="${linha}" class="fs-spark-line"></path>
+        </svg>`;
+    } catch (e) {
+      box.innerHTML = '';
     }
   },
 
@@ -757,11 +797,81 @@ const FloodSense = {
     if (this.state.currentScreen === 'ai') this.updateAIScreen();
   },
 
+  /** Banner de alerta crítico: lista os sensores críticos e diz se cada um é real ou simulado */
+  updateCriticalBanner() {
+    const el = document.getElementById('dash-critical-banner');
+    if (!el) return;
+    const crit = (this.state.sensors || []).filter(x => x.status === 'critical');
+    if (!crit.length) { el.innerHTML = ''; return; }
+    const lista = crit.map(x => `${x.id} · ${x.level} cm (${x.source === 'real' ? 'real' : 'simulado'})`).join(' · ');
+    el.innerHTML = `
+      <div class="crit-banner" role="alert">
+        <span class="crit-ico" aria-hidden="true">!</span>
+        <div>
+          <strong>${crit.length} ${crit.length > 1 ? 'sensores' : 'sensor'} em nível crítico</strong>
+          <span>${lista}</span>
+        </div>
+        <button class="crit-go" onclick="FloodSense.navigate('map')">Ver no mapa</button>
+      </div>`;
+  },
+
+  /** Grade de regiões: uma pastilha por sensor, com a cor do status */
+  updateDashboardZones() {
+    const box = document.getElementById('dash-zones');
+    if (!box) return;
+    const cor = st => ({ critical: 'var(--st-crit)', warning: 'var(--st-warn)', offline: 'var(--st-off)' }[st] || 'var(--st-ok)');
+    box.innerHTML = (this.state.sensors || []).map(s => {
+      const nivel = s.status === 'offline'
+        ? (s.source === 'real' || s.id === FIREBASE_SENSOR_ID ? 'Sem leitura' : 'Sem dado')
+        : `${s.level} cm`;
+      return `
+        <button class="zone-chip" onclick="FloodSense.navigate('map')" title="${s.name} · ${s.bairro}">
+          <span class="zone-dot" style="background:${cor(s.status)}"></span>
+          <span class="zone-name">${s.id} · ${s.bairro}</span>
+          <span class="zone-lvl">${nivel}</span>
+        </button>`;
+    }).join('');
+  },
+
+  /** Curva do nível atual até a previsão de +60 min, com a tendência (subindo, estável ou descendo) */
+  renderForecastCurve(p) {
+    const svg = document.getElementById('dash-ai-curve');
+    const chip = document.getElementById('dash-ai-trend');
+    if (!svg || !chip) return;
+    const cur = this.getCurrentRealLevel();
+    const wrap = document.getElementById('dash-ai-trend-wrap');
+    if (!p || cur === null) {
+      svg.innerHTML = '';
+      if (wrap) wrap.style.display = 'none';   // sem leitura real ou previsão: não mostra a curva vazia
+      return;
+    }
+    if (wrap) wrap.style.display = '';
+    const pred = Number(p.predicted);
+    const d = pred - cur;
+    const tipo = Math.abs(d) < 3 ? 'estavel' : d > 0 ? 'subindo' : 'descendo';
+    const rotulo = { subindo: '↗ Subindo', descendo: '↘ Descendo', estavel: '→ Estável' }[tipo];
+    chip.textContent = `${rotulo} · ${d > 0 ? '+' : ''}${d.toFixed(1)} cm em ${p.horizon} min`;
+    chip.className = `ai-trend-chip ${tipo}`;
+
+    const W = 320, H = 90, P = 12;
+    const max = Math.max(120, cur, pred) * 1.05;
+    const y = v => (H - P - (H - 2 * P) * (v / max)).toFixed(1);
+    const x0 = P, x1 = W - P;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = `
+      <line x1="${P}" x2="${W - P}" y1="${y(60)}" y2="${y(60)}" class="ai-ref"></line>
+      <line x1="${P}" x2="${W - P}" y1="${y(90)}" y2="${y(90)}" class="ai-ref crit"></line>
+      <path d="M${x0},${y(cur)} C${W / 2},${y(cur)} ${W / 2},${y(pred)} ${x1},${y(pred)}" class="ai-curve"></path>
+      <circle cx="${x0}" cy="${y(cur)}" r="4.5" class="ai-dot-now"></circle>
+      <circle cx="${x1}" cy="${y(pred)}" r="5" class="ai-dot-pred"></circle>`;
+  },
+
   /** Card "IA · Previsão FS-001" do Dashboard */
   updateDashboardAICard() {
     if (!document.getElementById('dash-ai-card')) return;
     const p = this.state.aiPrediction || this.emptyPrediction('loading');
     const hasCur = this.getCurrentRealLevel() !== null;
+    this.renderForecastCurve(p.available ? p : null);
     this.setText('dash-ai-current', this.fmtCurrentLevel(), hasCur ? 'var(--blue)' : 'var(--text-muted)');
 
     if (p.available) {
@@ -1178,6 +1288,8 @@ const FloodSense = {
     }
 
     this.state.currentScreen = screenName;
+    document.body.dataset.screen = screenName;
+    document.querySelectorAll('[data-bn]').forEach(el => el.classList.toggle('active', el.dataset.bn === screenName));
 
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.screen === screenName);
@@ -1256,6 +1368,9 @@ const FloodSense = {
 
     root.innerHTML = `
 
+      <!-- Alerta crítico em destaque (aparece só quando há sensor crítico) -->
+      <div id="dash-critical-banner"></div>
+
       <!-- Pedido manual de alerta para o celular (Telegram) -->
       <div class="content-card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div>
@@ -1269,6 +1384,15 @@ const FloodSense = {
 
       <!-- KPIs -->
       <div class="kpi-grid" id="kpi-grid"></div>
+
+      <!-- Situação por região (cor = status atual) -->
+      <div class="content-card" id="dash-zones-card" style="margin-bottom:12px">
+        <div class="content-card-header">
+          <span class="content-card-title"><i data-lucide="map-pin"></i> Situação por região</span>
+          <span class="chart-meta">cor = status atual · clique para abrir o mapa</span>
+        </div>
+        <div class="zone-grid" id="dash-zones"></div>
+      </div>
 
       <!-- IA · Previsão do FS-001 (dados reais do Firebase) -->
       <div class="content-card" id="dash-ai-card" style="margin-bottom:12px">
@@ -1291,6 +1415,10 @@ const FloodSense = {
               <strong id="${id}" style="display:block;margin-top:4px;font-size:18px;font-family:var(--text-mono)">—</strong>
             </div>
           `).join('')}
+        </div>
+        <div class="ai-trend-wrap" id="dash-ai-trend-wrap">
+          <svg id="dash-ai-curve" class="ai-curve-svg" role="img" aria-label="Curva de previsão: nível atual e previsão de +60 minutos"></svg>
+          <span id="dash-ai-trend" class="ai-trend-chip neutral">—</span>
         </div>
         <p id="dash-ai-msg" style="font-size:11px;color:var(--yellow);margin-top:10px;line-height:1.6">Consultando previsão da IA...</p>
       </div>
@@ -1405,6 +1533,8 @@ const FloodSense = {
   updateDashboardKPIs() {
 
     const s = this.state.sensors || [];
+    this.updateCriticalBanner();
+    this.updateDashboardZones();
 
     const online  = s.filter(x => x.status !== 'offline');
     const offline = s.filter(x => x.status === 'offline');
@@ -1436,7 +1566,7 @@ const FloodSense = {
       {
         label: 'Sensores Online',
         value: online.length,
-        sub: `${offline.length} offline`,
+        sub: `${offline.length} sem leitura · ${s.length} cadastrados (${s.filter(x => x.source === 'real').length} real, ${s.filter(x => x.source !== 'real').length} simulados)`,
         type: 'blue',
         icon: 'radio',
         iconCls: 'ic-blue',
@@ -1699,7 +1829,7 @@ const FloodSense = {
           </div>
           <span class="table-count" id="sensor-count"></span>
         </div>
-        <div style="overflow-x:auto">
+        <div class="sensor-scroll">
           <table class="sensor-table">
             <thead>
               <tr>
@@ -1759,20 +1889,21 @@ const FloodSense = {
 
     const tbody = document.getElementById('sensor-tbody');
     if (!tbody) return;
+    const vazio = (s) => s.status === 'offline' ? '<span class="sem-dado">Sem dado</span>' : null;
     tbody.innerHTML = pageData.map(s => `
       <tr>
-        <td><span class="sensor-id">${s.id}</span>${this.getSourceTag(s)}</td>
-        <td><span class="sensor-name">${s.name}</span></td>
-        <td style="color:var(--text-secondary)">${s.bairro}</td>
-        <td>
+        <td data-label="Sensor"><span class="sensor-id">${s.id}</span>${this.getSourceTag(s)}</td>
+        <td data-label="Nome"><span class="sensor-name">${s.name}</span></td>
+        <td data-label="Bairro" style="color:var(--text-secondary)">${s.bairro}</td>
+        <td data-label="Nível">
           <span class="sensor-level ${this.getLevelClass(s.status)}">
-            ${s.status === 'offline' ? (s.id === FIREBASE_SENSOR_ID ? 'Sem leitura' : '—') : s.level + ' cm'}
+            ${s.status === 'offline' ? (s.id === FIREBASE_SENSOR_ID ? '<span class="sem-dado">Sem leitura</span>' : '<span class="sem-dado">Sem dado</span>') : s.level + ' cm'}
           </span>
         </td>
-        <td style="font-family:var(--text-mono)">${s.status === 'offline' ? '—' : this.fmtVal(s.temp, '°C')}</td>
-        <td style="font-family:var(--text-mono)">${s.status === 'offline' ? '—' : this.fmtVal(s.humidity, '%')}</td>
-        <td>${this.getStatusBadge(s.status)}</td>
-        <td style="font-family:var(--text-mono);font-size:11px;color:var(--text-muted)">${s.lastRead}</td>
+        <td data-label="Temp." style="font-family:var(--text-mono)">${vazio(s) || this.fmtVal(s.temp, '°C')}</td>
+        <td data-label="Umidade" style="font-family:var(--text-mono)">${vazio(s) || this.fmtVal(s.humidity, '%')}</td>
+        <td data-label="Status">${this.getStatusBadge(s.status)}</td>
+        <td data-label="Última leitura" style="font-family:var(--text-mono);font-size:11px;color:var(--text-muted)">${s.lastRead}</td>
       </tr>
     `).join('');
 
@@ -1897,21 +2028,15 @@ const FloodSense = {
     }
 
     this.state.sensors.forEach(s => {
-      const color = s.status === 'critical' ? '#ef4444' :
+      const color = s.status === 'critical' ? '#DC4545' :
                     s.status === 'warning'  ? '#F28C00' :
-                    s.status === 'offline'  ? '#475569' : '#22c55e';
+                    s.status === 'offline'  ? '#82919A' : '#16A36A';
 
       const icon = L.divIcon({
         className: '',
-        html: `<div style="
-          width:16px;height:16px;border-radius:50%;
-          background:${color};
-          border:2px solid rgba(255,255,255,0.6);
-          box-shadow:0 0 10px ${color}55;
-          ${s.status === 'critical' ? 'animation:pulse-ring 1.5s ease infinite' : ''};
-        "></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
+        html: `<div class="fs-pin fs-pin-${s.status}" style="--pin:${color}"><span class="fs-pin-core"></span></div>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
         popupAnchor: [0, -12]
       });
 
@@ -2836,7 +2961,14 @@ const FloodSense = {
 
     container.appendChild(el);
 
-    setTimeout(() => this.dismissToast(id), duration);
+    // Limite de notificações: até 3 comuns e 3 críticas. As mais antigas saem primeiro.
+    // Críticas não somem sozinhas; ficam até o usuário fechar.
+    const comuns  = [...container.querySelectorAll('.toast:not(.toast-critical):not(.toast-exit)')];
+    while (comuns.length > 3) this.dismissToast(comuns.shift().id);
+    const criticas = [...container.querySelectorAll('.toast-critical:not(.toast-exit)')];
+    while (criticas.length > 3) this.dismissToast(criticas.shift().id);
+
+    if (type !== 'critical') setTimeout(() => this.dismissToast(id), duration);
   },
 
   dismissToast(id) {
