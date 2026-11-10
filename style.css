@@ -1810,3 +1810,51 @@ body { font-family: 'Inter', 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
   .real-sensor-grid .real-metric:first-child > strong { font-size: 52px; }
   .fs-foot { margin: 18px 16px 90px; }
 }
+
+/* ═══════ 29. FUNDO DO LOGIN SOBRIO v8 ═══════ */
+/* Substitui a foto de água por um fundo limpo, em azul-marinho e ciano (cores da marca) */
+#login-screen {
+  background:
+    radial-gradient(900px 500px at 85% -10%, rgba(0,184,217,.22), transparent 60%),
+    radial-gradient(800px 500px at -10% 110%, rgba(0,102,255,.20), transparent 60%),
+    linear-gradient(160deg, #0B1F3A 0%, #12365E 55%, #0E2A4D 100%) !important;
+}
+#login-screen::before,
+#login-screen::after { content: none !important; }
+.login-card { background: #fff !important; }
+
+/* ═══════ 30. EFEITO DE ONDAS NO LOGIN v9 ═══════ */
+#login-screen { overflow: hidden; }
+#login-screen .login-card { position: relative; z-index: 1; }
+
+#login-screen::before,
+#login-screen::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 150px;
+  pointer-events: none;
+  z-index: 0;
+  background-repeat: repeat-x;
+  background-size: 1440px 150px;
+}
+/* Onda de trás: ciano, mais lenta */
+#login-screen::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 150' preserveAspectRatio='none'%3E%3Cpath d='M0,70 C240,120 480,20 720,70 C960,120 1200,20 1440,70 L1440,150 L0,150 Z' fill='%2300B8D9'/%3E%3C/svg%3E");
+  opacity: .22;
+  animation: fs-onda 22s linear infinite;
+}
+/* Onda da frente: azul, um pouco mais rápida e mais baixa */
+#login-screen::after {
+  bottom: -18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 150' preserveAspectRatio='none'%3E%3Cpath d='M0,90 C300,40 540,130 720,90 C900,50 1140,130 1440,90 L1440,150 L0,150 Z' fill='%230066FF'/%3E%3C/svg%3E");
+  opacity: .18;
+  animation: fs-onda-rev 15s linear infinite;
+}
+@keyframes fs-onda     { from { background-position: 0 0; }      to { background-position: -1440px 0; } }
+@keyframes fs-onda-rev { from { background-position: 0 0; }      to { background-position: 1440px 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  #login-screen::before, #login-screen::after { animation: none; }
+}
