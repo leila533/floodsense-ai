@@ -154,8 +154,8 @@ a { color: inherit; text-decoration: none; }
 #login-screen {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 15% 20%, rgba(0,102,255,.09), transparent 30%),
-              radial-gradient(circle at 85% 85%, rgba(0,184,217,.10), transparent 32%),
+  background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(230,244,252,.6)),
+              url('assets/fundo-login-agua.jpg') center / cover no-repeat,
               linear-gradient(135deg, #F7FBFC, #EEF5FA);
   display: flex;
   align-items: center;
@@ -177,9 +177,11 @@ a { color: inherit; text-decoration: none; }
 
 .login-card {
   position: relative;
-  background: rgba(255,255,255,.98);
-  border: 1px solid #DCE8ED;
-  border-radius: 20px;
+  background: rgba(255,255,255,.9);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 24px;
   padding: 40px 36px;
   width: 100%;
   max-width: 420px;
@@ -253,10 +255,10 @@ a { color: inherit; text-decoration: none; }
 
 .btn-login {
   width: 100%;
-  background: var(--blue);
+  background: linear-gradient(90deg, #0066FF, #2F54EB);
   border: none;
-  border-radius: 10px;
-  padding: 12px 20px;
+  border-radius: 14px;
+  padding: 14px 20px;
   color: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -265,9 +267,9 @@ a { color: inherit; text-decoration: none; }
   transition: var(--transition);
   margin-top: 6px;
   letter-spacing: .2px;
-  box-shadow: 0 7px 20px rgba(0,102,255,.20);
+  box-shadow: 0 10px 26px rgba(0,102,255,.28);
 }
-.btn-login:hover { background: #0057D9; }
+.btn-login:hover { background: linear-gradient(90deg, #0057D9, #2F54EB); }
 .btn-login:active { transform: scale(.98); }
 .btn-login svg { width: 16px; height: 16px; }
 .btn-login.loading { opacity: .7; pointer-events: none; }
@@ -1028,7 +1030,7 @@ a { color: inherit; text-decoration: none; }
   background: linear-gradient(135deg, #F7FCFA, #fff);
 }
 .fs-contact-card strong { display: block; color: var(--navy); font-size: 13px; margin-bottom: 3px; }
-.fs-contact-info span { color: #74848D; font-size: 10px; }
+.fs-contact-card span { color: #74848D; font-size: 10px; }
 .fs-whatsapp-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   padding: 10px 15px;
@@ -1044,8 +1046,6 @@ a { color: inherit; text-decoration: none; }
 }
 .fs-whatsapp-btn:hover { transform: translateY(-2px); background: #1AA35F; }
 .fs-whatsapp-btn svg { width: 14px; height: 14px; }
-.fs-whatsapp-btn span { color: #fff; font-size: 11px; font-weight: 800; }
-.fs-whatsapp-btn { min-height: 44px; text-decoration: none; }
 
 /* Tags de origem do dado */
 .data-tag { display: inline-flex; align-items: center; margin-left: 6px; padding: 2px 7px; border-radius: 999px; border: 1px solid; font-size: 9px; font-weight: 800; letter-spacing: .6px; line-height: 1.4; vertical-align: middle; white-space: nowrap; }
@@ -1124,6 +1124,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     box-shadow: 8px 0 40px rgba(11,31,58,.35);
   }
   #sidebar.open { transform: translateX(0); }
+  #sidebar:not(.open) { box-shadow: none; }
   #sidebar-overlay.visible { display: block; }
 
   .hamburger-btn { display: flex; }
@@ -1167,4 +1168,645 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+}
+/* Login: card centralizado sobre o fundo */
+.login-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.login-wrap .login-card { max-width: 420px; }
+
+/* Login: alternar entre entrar e criar conta */
+.login-switch { text-align: center; font-size: 13px; color: var(--text-muted); margin: 14px 0 0; }
+.login-switch button {
+  background: none; border: none; padding: 0; margin-left: 4px;
+  color: var(--blue); font-weight: 700; cursor: pointer; text-decoration: underline;
+}
+
+/* ═══════ 22. ESTILO APP (v2): cards arredondados, azul, botões simples ═══════ */
+body { background: #EEF4FB; }
+.page-header, .navbar { background: #fff !important; border-bottom: 1px solid #E3ECF7 !important; }
+.page-title { color: #0B1F3A; }
+
+/* Cards: mais arredondados, sombra suave, respiro */
+.kpi-card, .chart-card, .content-card, .map-full-card, .report-card,
+.real-sensor-panel, .fs-contact-card, .skel-card, .fs-security-card, .fs-video-card {
+  border-radius: 20px !important;
+  border: 1px solid #E3ECF7 !important;
+  box-shadow: 0 6px 22px rgba(0,102,255,.06) !important;
+}
+.kpi-card, .content-card { padding: 18px !important; }
+
+/* Indicadores: ícones em blocos azuis */
+.kpi-icon { border-radius: 14px !important; width: 38px !important; height: 38px !important; }
+.kpi-value { font-size: 28px !important; color: #0B1F3A !important; }
+
+/* Botões simples e legíveis */
+.btn, .btn-login { border-radius: 14px !important; font-weight: 600 !important; }
+.btn-primary, .btn-login { background: #0066FF !important; border-color: #0066FF !important; color: #fff !important; }
+.btn-outline { background: #fff !important; color: #0B1F3A !important; border: 1px solid #D5E3F2 !important; }
+.btn:hover { filter: brightness(1.05); }
+
+/* Botão de contato: texto sempre visível */
+.fs-whatsapp-btn, .fs-contact-card a, .fs-contact-card button {
+  color: #fff !important; background: #0066FF !important; border-radius: 14px !important;
+  font-weight: 600 !important; box-shadow: none !important; border: none !important;
+}
+
+/* Menu lateral: item ativo como pílula azul */
+.nav-btn { border-radius: 14px !important; }
+.nav-btn.active, .nav-btn[aria-current="page"] {
+  background: #0066FF !important; color: #fff !important;
+  box-shadow: 0 6px 16px rgba(0,102,255,.35) !important;
+}
+.fs-whatsapp-btn, .fs-whatsapp-btn * { color: #fff !important; -webkit-text-fill-color: #fff !important; background-clip: border-box !important; }
+.fs-whatsapp-btn { background: #0066FF !important; }
+.fs-whatsapp-btn:hover { background: #0052CC !important; }
+
+/* ═══════ 23. BARRA LATERAL MODERNA (paleta da marca: navy · azul · ciano) ═══════ */
+#sidebar {
+  background: linear-gradient(180deg, #0B1F3A 0%, #0A2A5E 100%) !important;
+  border-right: 1px solid rgba(0,184,217,.12) !important;
+}
+.sidebar-logo { padding: 20px 18px 16px !important; }
+.sb-logo-name { font-size: 16px !important; font-weight: 800 !important; }
+.sb-logo-tag { color: #00B8D9 !important; opacity: .85; }
+.sb-status-bar {
+  margin: 6px 14px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+  padding: 9px 12px !important;
+}
+.nav-btn {
+  border-radius: 12px !important; padding: 10px 12px !important;
+  font-size: 13.5px !important; color: #C9D7E8 !important;
+  margin: 2px 10px !important; background: transparent !important;
+}
+.nav-btn:hover { background: rgba(0,184,217,.10) !important; color: #fff !important; }
+.nav-btn.active, .nav-btn[aria-current="page"] {
+  background: linear-gradient(90deg, #0066FF 0%, #0096D6 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(0,102,255,.35) !important;
+}
+.nav-btn.active::before { display: none !important; }
+.nav-section-title, .nav-group-title, .sb-section-title {
+  color: #00B8D9 !important; letter-spacing: 1.4px !important; opacity: .8;
+}
+.sb-footer { border-top: 1px solid rgba(255,255,255,.08) !important; padding: 14px 12px 16px !important; }
+.sb-ai-card {
+  background: linear-gradient(135deg, rgba(0,102,255,.22), rgba(0,184,217,.12)) !important;
+  border: 1px solid rgba(0,184,217,.25) !important; border-radius: 14px !important;
+}
+.btn-logout {
+  border-radius: 12px !important; background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(255,255,255,.12) !important; color: #C9D7E8 !important;
+}
+.btn-logout:hover { background: rgba(255,255,255,.1) !important; color: #fff !important; }
+
+/* ── LOGIN: divisor e botão Google ── */
+.login-divisor { display:flex; align-items:center; gap:12px; margin:14px 0 12px; color:#8A97A8; font-size:12px; }
+.login-divisor::before, .login-divisor::after { content:""; flex:1; height:1px; background:#E1E7EF; }
+.btn-google {
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  height:46px; border-radius:12px; border:1px solid #D5DEEA; background:#fff;
+  color:#1F2A3C; font-size:15px; font-weight:600; cursor:pointer; transition:background .2s, border-color .2s;
+}
+.btn-google:hover { background:#F5F8FC; border-color:#B9C7DB; }
+.btn-google:disabled { opacity:.6; cursor:default; }
+
+/* ══ 05b. LOGIN v2 — refinamento visual (sobrescreve a seção 05) ══ */
+.login-card { padding: 36px 36px 26px !important; border-radius: 22px !important; box-shadow: 0 24px 60px rgba(11,31,58,.16) !important; }
+.login-logo { margin-bottom: 20px !important; }
+.login-welcome { font-size: 14px; color: var(--text-secondary); margin: 0 0 22px; line-height: 1.5; }
+.login-card .form-label { font-size: 13px !important; font-weight: 600 !important; color: #1F2D3D !important; margin-bottom: 8px !important; padding: 0 !important; }
+.login-card .form-label svg, .login-card .form-label i { display: none !important; }
+.login-card .form-input { height: 48px; border-radius: 12px !important; font-size: 15px !important; padding: 0 14px; }
+.login-card .input-password-wrap .form-input { padding-right: 46px !important; }
+.login-card .form-group { margin-bottom: 16px !important; }
+.login-card .toggle-pw { right: 12px !important; }
+.login-card .btn-login { height: 50px !important; font-size: 15px !important; box-shadow: 0 10px 24px rgba(0,102,255,.28) !important; }
+.login-card .btn-google { height: 48px; }
+.login-card .login-footer-note { margin-top: 22px !important; line-height: 1.6; }
+.login-card button:focus-visible, .login-card input:focus-visible { outline: 2px solid #00B8D9; outline-offset: 2px; }
+@media (max-width: 480px) {
+  .login-card { padding: 26px 22px 20px !important; border-radius: 18px !important; }
+  .login-title { font-size: 20px; }
+  .login-welcome { font-size: 13px; margin-bottom: 18px; }
+}
+
+/* ═══════ 05c. ATALHOS + BARRA INFERIOR (estilo app) ═══════ */
+.atalhos {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 22px 0;
+}
+.atalho {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 14px 6px 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(11,31,58,.05);
+  transition: var(--transition);
+  cursor: pointer;
+}
+.atalho:hover { transform: translateY(-3px); border-color: #C4D9FF; box-shadow: 0 12px 26px rgba(11,31,58,.09); }
+.atalho:active { transform: scale(.97); }
+.atalho span:last-child { font-size: 12px; font-weight: 700; color: var(--navy); }
+.atalho-ico {
+  width: 50px; height: 50px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.atalho-ico svg { width: 22px; height: 22px; }
+.atalho-ico.ic-blue   { background: var(--blue-dim);   color: var(--blue); }
+.atalho-ico.ic-cyan   { background: rgba(0,184,217,.13); color: #00849B; }
+.atalho-ico.ic-green  { background: var(--green-dim);  color: var(--green); }
+.atalho-ico.ic-yellow { background: var(--yellow-dim); color: #C46A00; }
+.atalho-ico.ic-red    { background: var(--red-dim);    color: var(--red); }
+.atalho-ico.ic-purple { background: var(--purple-dim); color: var(--purple); }
+
+/* Os atalhos só aparecem no Dashboard */
+body:not([data-screen="dashboard"]) .atalhos { display: none; }
+
+/* Barra inferior: só no celular */
+.bottom-nav { display: none; }
+
+@media (max-width: 1100px) {
+  .atalhos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .atalhos { margin: 14px 15px 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .atalho { padding: 12px 4px 10px; border-radius: 16px; }
+  .atalho-ico { width: 46px; height: 46px; border-radius: 14px; }
+  .atalho span:last-child { font-size: 11px; }
+
+  #content-scroll { padding-bottom: 96px; }
+
+  .bottom-nav {
+    display: flex; align-items: center; justify-content: space-around;
+    position: fixed; left: 0; right: 0; bottom: 0;
+    height: 68px;
+    padding: 0 10px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -10px 30px rgba(11,31,58,.10);
+    z-index: 180;
+  }
+  .bn-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    background: none; border: none; color: var(--text-muted);
+    font-size: 10px; font-weight: 600; padding: 6px 0;
+    transition: var(--transition-fast);
+  }
+  .bn-item svg { width: 20px; height: 20px; }
+  .bn-item.active { color: var(--blue); }
+  .bn-fab {
+    width: 58px; height: 58px; flex-shrink: 0;
+    margin-top: -26px;
+    border-radius: 50%; border: 4px solid #F5F7FA;
+    background: linear-gradient(135deg, #0066FF, #00B8D9);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 24px rgba(0,102,255,.35);
+  }
+  .bn-fab svg { width: 22px; height: 22px; }
+  .bn-fab.active { box-shadow: 0 0 0 4px rgba(0,102,255,.2), 0 10px 24px rgba(0,102,255,.35); }
+}
+
+/* ═══════ 22. REFINAMENTO VISUAL v4 (só aparência; nenhuma classe ou ID foi removido) ═══════ */
+body { font-family: 'Inter', 'Space Grotesk', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+.kpi-value, .sensor-level, .table-count, .clock-pill, .iot-pill, .sensor-id, .real-metric > strong,
+.info-cell-value, .model-value { font-variant-numeric: tabular-nums; }
+
+/* Cabeçalho */
+#top-navbar { box-shadow: 0 1px 0 rgba(11,31,58,.04), 0 6px 22px rgba(11,31,58,.04); }
+.page-title { font-size: 18px; letter-spacing: -.2px; }
+.page-subtitle { font-size: 11px; color: var(--text-secondary); }
+.iot-pill, .clock-pill, .auto-pill { border-radius: 999px; padding: 6px 12px; font-size: 11px; }
+
+/* Cartões: um só padrão de borda, raio e sombra */
+.kpi-card, .table-container, .chart-card, .content-card, .map-full-card, .alert-item, .report-card {
+  border-color: #E3ECF0;
+}
+.kpi-card { padding: 20px; border-radius: 18px; }
+.kpi-label { font-size: 10px; letter-spacing: .9px; }
+.kpi-value { font-size: 28px; }
+.kpi-sub { font-size: 11px; color: var(--text-secondary); }
+.content-card-title, .chart-title { font-size: 14px; font-weight: 700; }
+.content-card-header, .chart-header { margin-bottom: 14px; }
+
+/* Tabela de sensores */
+.table-toolbar { padding: 16px 18px; gap: 12px; }
+.table-search { border-radius: 12px; padding: 9px 14px; background: #F8FBFC; }
+.table-search input { font-size: 13px; }
+.filter-btn { border-radius: 999px; padding: 6px 14px; font-weight: 600; }
+.filter-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 6px 14px rgba(0,102,255,.22); }
+.sensor-table th { padding: 12px 16px; font-size: 10px; background: #F8FBFC; }
+.sensor-table td { padding: 13px 16px; font-size: 13px; }
+.sensor-table tbody tr:hover td { background: #F4FAFC; }
+.sensor-level { font-size: 14px; }
+.pagination { padding: 14px 18px; }
+.pg-btn { border-radius: 8px; padding: 5px 12px; }
+
+/* Badges e status: pílulas mais legíveis */
+.badge { border-radius: 999px; padding: 4px 10px; font-size: 10px; letter-spacing: .4px; }
+
+/* Botões: mesma altura e raio em todo o painel */
+.btn { border-radius: 12px; padding: 9px 16px; font-weight: 700; letter-spacing: .1px; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,102,255,.26); }
+.btn-outline:hover { transform: translateY(-1px); }
+.btn-sm { padding: 6px 12px; border-radius: 10px; }
+.fs-action { border-radius: 12px; font-weight: 700; }
+
+/* Alertas e linha do tempo */
+.alert-item { border-radius: 14px; padding: 16px 18px; }
+.alert-title { font-size: 14px; }
+.alert-description { font-size: 12px; }
+
+/* Toasts: abaixo da barra superior, sem cobrir indicadores */
+#toast-container { top: 80px; right: 16px; max-width: 300px; }
+.toast { border-radius: 14px; box-shadow: 0 12px 30px rgba(11,31,58,.12); padding: 12px 14px; }
+.toast-title { font-size: 13px; }
+
+/* Sidebar */
+.sb-logo-tag { font-size: 8px; letter-spacing: .5px; }
+.nav-btn { border-radius: 12px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
+.nav-group-label { font-size: 9.5px; }
+.sb-ai-card { border-radius: 14px; }
+
+/* Mapa e gráficos */
+.map-full-header { padding: 16px 18px; }
+.legend-item { font-size: 12px; }
+
+/* Tela de login já tem o próprio estilo (05b); mantido */
+
+/* ═══════ 23. MELHORIAS VISUAIS v5 ═══════ */
+
+/* Barra do nível da água (FS-001) */
+.fs-gauge { margin: 4px 0 18px; }
+.fs-gauge-trilho {
+  position: relative; height: 22px; border-radius: 999px; overflow: hidden;
+  background: #EEF3F6; box-shadow: inset 0 1px 3px rgba(11,31,58,.08);
+}
+.fs-gauge-zona { position: absolute; top: 0; bottom: 0; }
+.fs-gauge-zona.z-ok   { left: 0;   width: 50%; background: rgba(22,163,106,.10); }
+.fs-gauge-zona.z-warn { left: 50%; width: 25%; background: rgba(242,140,0,.14); }
+.fs-gauge-zona.z-crit { left: 75%; width: 25%; background: rgba(220,69,69,.14); }
+.fs-gauge-agua {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: var(--nivel, 0%);
+  background: linear-gradient(90deg, #0066FF, #00B8D9);
+  border-radius: 999px;
+  transition: width .8s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 16px rgba(0,184,217,.35);
+}
+.fs-gauge-agua::after {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 40px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.45));
+  animation: fs-brilho 2.4s ease-in-out infinite;
+}
+@keyframes fs-brilho { 0%,100% { opacity: .2; } 50% { opacity: .8; } }
+.fs-gauge-marca {
+  position: absolute; top: -4px; bottom: -4px;
+  left: calc(var(--nivel, 0%) - 2px); width: 4px; border-radius: 2px;
+  background: var(--navy); box-shadow: 0 0 0 3px #fff, 0 2px 8px rgba(11,31,58,.25);
+  transition: left .8s cubic-bezier(.4,0,.2,1);
+}
+.fs-gauge-escala { position: relative; height: 16px; margin-top: 7px; font-size: 10px; color: var(--text-muted); font-family: var(--text-mono); }
+.fs-gauge-escala span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.fs-gauge-escala span:first-child { transform: none; }
+.fs-gauge-escala span:last-child { transform: translateX(-100%); }
+
+
+/* ═══════ 24. ESTADOS, CORES E MAPA v5 ═══════ */
+
+/* Cores de status — mesmos valores em todas as telas */
+:root {
+  --st-ok: #16A36A;
+  --st-warn: #F28C00;
+  --st-crit: #DC4545;
+  --st-off: #82919A;
+}
+
+/* Carregamento: esqueleto enquanto o primeiro dado não chega */
+.real-sensor-panel.is-loading .real-metric > strong,
+.real-sensor-panel.is-loading .fs-gauge-agua,
+.real-sensor-panel.is-loading .fs-gauge-marca { color: transparent; background: var(--bg-card-2); border-radius: 6px; min-height: 28px; }
+.real-sensor-panel.is-loading .fs-gauge-agua { width: 100%; background: linear-gradient(90deg, var(--bg-card-2) 25%, #E9F0F3 50%, var(--bg-card-2) 75%); background-size: 600px 100%; animation: shimmer 1.5s infinite linear; box-shadow: none; }
+.real-sensor-panel.is-loading .fs-gauge-agua::after,
+.real-sensor-panel.is-loading .fs-gauge-marca { display: none; }
+.real-sensor-panel.is-loading .real-metric > small,
+.real-sensor-panel.is-loading .real-metric > span { color: transparent; background: var(--bg-card-2); border-radius: 4px; }
+
+/* Estado vazio: FS-001 sem leitura */
+.real-sensor-panel.is-empty .real-metric > strong { color: var(--st-off); }
+.real-sensor-panel.is-empty .fs-gauge-trilho { background: repeating-linear-gradient(45deg, #F2F5F6 0 8px, #E9EFF2 8px 16px); }
+.real-sensor-panel.is-empty .fs-gauge-agua,
+.real-sensor-panel.is-empty .fs-gauge-marca { display: none; }
+.real-sensor-panel.is-empty .fs-gauge-trilho::after {
+  content: 'aguardando leitura do ESP32';
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--st-off); letter-spacing: .3px;
+}
+
+/* Pino do mapa com halo e pulso para alerta crítico */
+.fs-pin {
+  position: relative; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--pin); border: 2px solid #fff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pin) 22%, transparent), 0 3px 8px rgba(11,31,58,.25);
+  display: flex; align-items: center; justify-content: center;
+}
+.fs-pin-core { width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: .9; }
+.fs-pin-critical::before, .fs-pin-warning::before {
+  content: ''; position: absolute; inset: -2px; border-radius: 50%;
+  border: 2px solid var(--pin); opacity: 0; animation: fs-pin-ring 1.8s ease-out infinite;
+}
+.fs-pin-critical::before { animation-duration: 1.4s; }
+.fs-pin-offline { opacity: .7; }
+@keyframes fs-pin-ring { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .fs-pin::before, .fs-gauge-agua::after { animation: none !important; }
+}
+
+/* ═══════ 25. TENDÊNCIA, CARTÕES NO CELULAR, SEM DADO ═══════ */
+
+/* Tendência real do FS-001 (histórico de treinamento) */
+.fs-spark { margin: -6px 0 16px; }
+.fs-spark:empty { display: none; }
+.fs-spark-label { font-size: 10px; font-weight: 600; letter-spacing: .4px; color: var(--text-muted); margin-bottom: 4px; }
+.fs-spark svg { width: 100%; height: 56px; display: block; }
+.fs-spark-line { fill: none; stroke: var(--blue); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.fs-spark-area { fill: rgba(0,102,255,.08); }
+
+/* Valores ausentes (sensores simulados offline) */
+.sem-dado { color: var(--st-off); font-style: italic; font-weight: 500; }
+
+/* Tabela de sensores: no celular vira uma lista de cartões */
+@media (max-width: 600px) {
+  .sensor-scroll { overflow: visible; }
+  .sensor-table, .sensor-table tbody { display: block; width: 100%; min-width: 0; }
+  .sensor-table thead { display: none; }
+  .sensor-table tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .sensor-table tr:last-child { border-bottom: 0; }
+  .sensor-table td { display: flex; flex-direction: column; gap: 3px; padding: 0; border: 0; min-width: 0; }
+  .sensor-table td::before {
+    content: attr(data-label); font-size: 10px; font-weight: 700;
+    letter-spacing: .6px; text-transform: uppercase; color: var(--text-muted);
+  }
+  .sensor-table td[data-label="Sensor"], .sensor-table td[data-label="Nome"] { grid-column: 1 / -1; }
+  .sensor-table td[data-label="Sensor"]::before, .sensor-table td[data-label="Nome"]::before { display: none; }
+}
+
+/* ═══════ 26. REFORMULAÇÃO VISUAL v6 (layout da tela principal) ═══════ */
+
+:root {
+  --radius-hero: 20px;
+  --shadow-soft: 0 1px 2px rgba(11,31,58,.04), 0 10px 30px rgba(11,31,58,.06);
+  --shadow-lift: 0 2px 4px rgba(11,31,58,.05), 0 18px 40px rgba(11,31,58,.10);
+}
+
+/* Foco visível para teclado */
+:focus-visible { outline: 3px solid rgba(0,184,217,.45); outline-offset: 2px; border-radius: 10px; }
+
+/* Atalhos: faixa compacta de uma linha, em vez de seis blocos grandes */
+.atalhos { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.atalho {
+  flex-direction: row; justify-content: flex-start; align-items: center; text-align: left;
+  gap: 12px; padding: 12px 14px; border-radius: 16px; min-height: 0;
+  box-shadow: var(--shadow-soft);
+}
+.atalho:hover { box-shadow: var(--shadow-lift); }
+.atalho-ico { width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0; }
+.atalho span:last-child { font-size: 13px; }
+
+/* Sensor físico FS-001: duas colunas — leitura à esquerda, métricas à direita */
+.real-sensor-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  grid-template-areas:
+    "head metrics"
+    "gauge metrics"
+    "spark metrics";
+  column-gap: 32px;
+  align-items: start;
+  border-radius: var(--radius-hero);
+  box-shadow: var(--shadow-soft);
+}
+.real-sensor-head { grid-area: head; margin-bottom: 18px; }
+.fs-gauge         { grid-area: gauge; }
+.fs-spark         { grid-area: spark; margin: 0; }
+.real-sensor-grid {
+  grid-area: metrics;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-self: stretch;
+  margin-top: 0;
+}
+.real-sensor-grid .real-metric { min-height: 118px; display: flex; flex-direction: column; justify-content: space-between; }
+
+/* KPIs: mesma altura e alinhamento em todos os cartões */
+.kpi-grid { gap: 14px; }
+.kpi-card { min-height: 132px; display: flex; flex-direction: column; box-shadow: var(--shadow-soft); transition: transform .2s ease, box-shadow .2s ease; }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+
+/* Cartões de ação (WhatsApp e alerta no celular) com o mesmo acabamento */
+.fs-contact-card,
+#app-root > .content-card:first-child {
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+  padding: 18px 22px;
+}
+
+/* Login: faixa de marca no topo do cartão */
+.login-card { position: relative; overflow: hidden; }
+.login-card::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  background: linear-gradient(90deg, #0066FF, #00B8D9);
+}
+
+/* Tablet e celular: um bloco por linha */
+@media (max-width: 1100px) {
+  .atalhos { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .real-sensor-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "head" "gauge" "spark" "metrics";
+    row-gap: 6px;
+  }
+  .real-sensor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 8px; }
+  .real-sensor-grid .real-metric { min-height: 104px; }
+}
+@media (max-width: 600px) {
+  .atalhos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi-card { min-height: 0; }
+}
+
+/* ═══════ 27. ACABAMENTO SIMPLES v7 (menos cor, mais ordem) ═══════ */
+
+/* Uma só linguagem de superfície: borda fina, cantos iguais, sombra leve */
+:root {
+  --card-border: #E3ECF0;
+  --card-radius: 16px;
+  --card-shadow: 0 1px 2px rgba(11,31,58,.04), 0 6px 18px rgba(11,31,58,.05);
+  --section-gap: 16px;
+}
+
+/* Espaçamento vertical único entre os blocos da tela principal */
+#content-scroll > .atalhos,
+#content-scroll > .real-sensor-panel,
+#content-scroll > .fs-contact-card { margin-top: var(--section-gap); }
+#content-scroll > .atalhos { margin-top: 20px; }
+#app-root { padding-bottom: var(--section-gap); }
+#app-root > * + * { margin-top: var(--section-gap); }
+#app-root .kpi-grid { margin-bottom: 0; }
+
+/* Atalhos: todos no mesmo tom azul, sem arco-íris de cores */
+.atalho-ico,
+.atalho-ico.ic-blue, .atalho-ico.ic-cyan, .atalho-ico.ic-green,
+.atalho-ico.ic-yellow, .atalho-ico.ic-red, .atalho-ico.ic-purple {
+  background: var(--blue-dim); color: var(--blue);
+}
+.atalho {
+  background: #fff; border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow); padding: 10px 14px;
+}
+.atalho:hover { border-color: #C4D9FF; box-shadow: 0 4px 14px rgba(0,102,255,.08); }
+.atalho span:last-child { color: var(--navy); font-weight: 600; }
+
+/* FS-001: painel branco limpo, sem brilho decorativo */
+.real-sensor-panel {
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 22px 24px;
+}
+.real-sensor-head h2 { font-size: 20px; }
+.real-metric {
+  background: #F7FAFB; border: 1px solid var(--card-border);
+  border-radius: 14px; box-shadow: none;
+}
+.real-metric:hover { transform: none; box-shadow: none; background: #F7FAFB; border-color: #C8DDF5; }
+.real-metric > span { font-size: 10px; letter-spacing: .6px; }
+.real-metric > strong { font-size: 26px; }
+
+/* KPIs: cartão simples, ícone discreto */
+.kpi-card {
+  background: #fff; border: 1px solid var(--card-border);
+  border-radius: var(--card-radius); box-shadow: var(--card-shadow);
+  padding: 18px 20px; min-height: 0;
+}
+.kpi-card:hover { transform: none; box-shadow: 0 6px 18px rgba(11,31,58,.08); }
+.kpi-card::before, .kpi-card::after { display: none !important; }
+.kpi-icon { width: 34px; height: 34px; border-radius: 10px; }
+.kpi-value { font-size: 26px; }
+.kpi-label { font-size: 10px; color: var(--text-muted); }
+
+/* Cartões de ação: mesma forma e mesmo peso */
+.fs-contact-card,
+#app-root > .content-card:first-child {
+  background: #fff; border: 1px solid var(--card-border);
+  border-radius: var(--card-radius); box-shadow: var(--card-shadow);
+  padding: 16px 20px;
+}
+
+/* Títulos de seção: um tamanho só */
+.content-card-title, .chart-title { font-size: 14px; font-weight: 700; color: var(--navy); }
+.chart-meta { font-size: 12px; color: var(--text-muted); }
+
+/* Celular: menos respiro lateral desperdiçado */
+@media (max-width: 600px) {
+  .real-sensor-panel { padding: 18px 16px; }
+  .real-sensor-grid { gap: 10px; }
+  .kpi-card { padding: 16px; }
+}
+.real-connection > strong { font-size: 18px; letter-spacing: 0; font-family: var(--text-ui, 'Inter', sans-serif); line-height: 1.3; }
+
+/* ═══════ 28. ORGANIZAÇÃO E CLAREZA DOS DADOS v7 ═══════ */
+
+/* Fonte dos dados, sempre visível no topo */
+.src-pill {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px;
+  border-radius: 999px; background: #F1F7FF; border: 1px solid #D6E6FF;
+  font-size: 11px; font-weight: 600; color: var(--navy); white-space: nowrap;
+}
+.src-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--st-ok); }
+
+/* Nível da água: elemento principal do painel do FS-001 */
+.real-sensor-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.real-sensor-grid .real-metric:first-child {
+  grid-column: 1 / -1; min-height: 132px;
+  background: linear-gradient(135deg, #F3F8FF, #EAF7FB); border-color: #CFE3FF;
+}
+.real-sensor-grid .real-metric:first-child > strong { font-size: 64px; color: var(--blue); }
+.real-sensor-grid .real-metric:first-child > strong::after {
+  content: ' cm'; font-size: 22px; color: var(--text-muted); margin-left: 4px; letter-spacing: 0;
+}
+.real-sensor-grid .real-metric:first-child > small { display: none; }
+
+/* Alerta crítico em destaque */
+.crit-banner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; border-radius: 14px;
+  background: #FFF1F1; border: 1px solid #F0CCCC; color: #8E1F1F;
+}
+.crit-banner > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.crit-banner strong { font-size: 14px; color: var(--red); }
+.crit-ico {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--red); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;
+}
+.crit-go {
+  border: 1px solid var(--red); background: #fff; color: var(--red);
+  border-radius: 10px; padding: 7px 12px; font-weight: 700; font-size: 12px; cursor: pointer;
+}
+
+/* Situação por região */
+.zone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.zone-chip {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--card-border); border-radius: 12px; background: #fff;
+  text-align: left; cursor: pointer; font: inherit; min-width: 0;
+}
+.zone-chip:hover { border-color: #C4D9FF; background: #F8FBFF; }
+.zone-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.zone-name {
+  flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--navy);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.zone-lvl { font-family: var(--text-mono); font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+
+/* Previsão +60 min com curva e tendência */
+.ai-trend-wrap { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 12px; padding: 12px 14px; border: 1px solid var(--card-border); border-radius: 14px; background: #FAFCFD; }
+.ai-curve-svg { width: 100%; height: 90px; display: block; }
+.ai-curve { fill: none; stroke: var(--blue); stroke-width: 2.5; stroke-linecap: round; }
+.ai-ref { stroke: #D6E0E6; stroke-width: 1; stroke-dasharray: 4 4; }
+.ai-ref.crit { stroke: #F0CCCC; }
+.ai-dot-now { fill: #fff; stroke: var(--navy); stroke-width: 2; }
+.ai-dot-pred { fill: var(--blue); }
+.ai-trend-chip { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
+.ai-trend-chip.subindo { background: #FFF4E5; color: #C46A00; }
+.ai-trend-chip.descendo { background: var(--green-dim); color: var(--green); }
+.ai-trend-chip.estavel { background: var(--blue-dim); color: var(--blue); }
+.ai-trend-chip.neutral { background: #F2F5F6; color: #82919A; }
+
+/* Menu lateral: ícones e estados mais discretos */
+.nav-btn svg { width: 18px; height: 18px; }
+.sb-ai-card { opacity: .9; }
+
+/* Rodapé técnico */
+.fs-foot {
+  margin: 22px 22px 28px; padding-top: 14px; border-top: 1px solid var(--card-border);
+  display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 11px; color: var(--text-muted);
+}
+@media (max-width: 600px) {
+  .real-sensor-grid .real-metric:first-child > strong { font-size: 52px; }
+  .fs-foot { margin: 18px 16px 90px; }
 }
